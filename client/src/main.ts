@@ -1,24 +1,33 @@
 import Phaser from 'phaser';
 import { H, W } from '../../shared/layout';
+import type { PartyAudio } from './audio';
 import { IS_PREVIEW, PartyScene } from './scenes/PartyScene';
+import { Overlay3D } from './three/Overlay3D';
 
-// Màn hình game (overlay). Điều khiển ở /control.html.
-// __game: để debug từ console trình duyệt
-(window as any).__game = new Phaser.Game({
-  type: Phaser.AUTO,
-  parent: 'game',
-  width: W,
-  height: H,
-  backgroundColor: '#1a0f0a',
-  scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
-  scene: [PartyScene],
-  fps: { target: 60 },
-});
-
-// ---------- Cửa sổ live 9:16 (học từ avatar-arena) ----------
-// Mở với ?size=720 → tự chỉnh cửa sổ để phần nội dung đúng 720×1280 (hoặc vừa màn hình),
-// dùng làm nguồn "Cửa sổ" trong TikTok LIVE Studio.
 const params = new URLSearchParams(location.search);
+const use2D = params.has('2d') || params.has('atlas-test');
+
+let getAudio: () => PartyAudio | undefined;
+
+if (use2D) {
+  (window as any).__game = new Phaser.Game({
+    type: Phaser.AUTO,
+    parent: 'game',
+    width: W,
+    height: H,
+    backgroundColor: '#1a0f0a',
+    scale: { mode: Phaser.Scale.FIT, autoCenter: Phaser.Scale.CENTER_BOTH },
+    scene: [PartyScene],
+    fps: { target: 60 },
+  });
+  getAudio = () => ((window as any).__game?.scene?.getScene('party') as PartyScene | undefined)?.audio;
+} else {
+  const overlay3d = new Overlay3D(document.getElementById('game')!);
+  (window as any).__overlay3d = overlay3d;
+  getAudio = () => overlay3d.audio;
+}
+
+// ---------- Cửa sổ live 9:16 ----------
 const sizeTag = document.getElementById('sizeTag')!;
 let tagTimer = 0;
 if (params.get('size')) {
@@ -37,14 +46,12 @@ if (params.get('size')) {
 }
 
 // ---------- Bật tiếng ----------
-// OBS và cửa sổ live (OPEN-LIVE-WINDOW.bat) cho phép tự phát; tab trình duyệt thường cần 1 cú bấm.
 const unlockBtn = document.getElementById('unlock')!;
-const scene = () => (window as any).__game?.scene?.getScene('party') as PartyScene | undefined;
 async function tryUnlock() {
-  const s = scene();
-  if (!s) return;
-  await s.audio.unlock();
-  unlockBtn.classList.toggle('on', s.audio.needsUnlock);
+  const audio = getAudio();
+  if (!audio) return;
+  await audio.unlock();
+  unlockBtn.classList.toggle('on', audio.needsUnlock);
 }
 if (!IS_PREVIEW) {
   setTimeout(tryUnlock, 800);

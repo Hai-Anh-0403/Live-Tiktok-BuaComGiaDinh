@@ -16,6 +16,8 @@ export interface Look {
   shirtStyle: number; // 0..3 kiểu áo
   /** Nhân vật vẽ riêng nguyên bộ trong atlas (chủ tiệc, ông cụ, chú Quang, chú Chực) */
   special?: 'host' | 'host_old' | 'quang' | 'chuc';
+  /** Index ảnh sprite người chơi (0..4) nếu dùng bộ ảnh tách nền */
+  guestSprite?: number;
 }
 
 export const SKINS = [0xf2c9a0, 0xe0ac7e, 0xc68a5e, 0xf7d7b5];
@@ -36,6 +38,7 @@ export function decodeLook(seed: number): Look {
     hairStyle: next(4),
     accessory: next(6) < 4 ? 0 : 1 + next(2),
     shirtStyle: next(4),
+    guestSprite: next(5),
   };
 }
 

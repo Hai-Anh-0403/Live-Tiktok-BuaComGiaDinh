@@ -359,7 +359,7 @@ let lastDebate = -1;
 
 class QuangEvent implements GameEvent {
   id = 'quang' as const;
-  title = '🗣 QUANG LÊN TIẾNG';
+  title = '🗣 KỲ ANH LÊN TIẾNG';
   hint = '';
   durationMs = 45000;
   private d: Debate;
@@ -438,7 +438,7 @@ class QuangEvent implements GameEvent {
     ctx.broadcast({ t: 'npc_emote', id: 'quang', kind: 'star' });
     ctx.sayAs('quang_verdict', { side: sideName, answer }, 3, { speaker: 'quang', voice: ctx.quangVoice() });
     ctx.say(twist ? 'quang_host_twist' : 'quang_host_agree', { side: sideName }, 3);
-    ctx.broadcast({ t: 'banner', text: `Quang phán: ${sideName} — ${answer}!${twist ? ' (phe ít người!)' : ''}`, ms: 5000 });
+    ctx.broadcast({ t: 'banner', text: `Kỳ Anh phán: ${sideName} — ${answer}!${twist ? ' (phe ít người!)' : ''}`, ms: 5000 });
 
     // thưởng: người đúng phe +1 cho mâm; mâm nhiều người đúng nhất +10
     const perTable = new Map<number, number>();
@@ -452,7 +452,7 @@ class QuangEvent implements GameEvent {
     const best = [...perTable.entries()].sort((x, y) => y[1] - x[1])[0];
     if (best) { ctx.bond(best[0], 10); ctx.broadcast({ t: 'table_fx', table: best[0], kind: 'win' }); }
     setTimeout(() => ctx.npc.leave('quang'), 9000);
-    ctx.log(`Quang lên tiếng: "${this.d.q}" A ${a} – B ${b} → ${sideName}${twist ? ' (lật kèo)' : ''}`);
+    ctx.log(`Kỳ Anh lên tiếng: "${this.d.q}" A ${a} – B ${b} → ${sideName}${twist ? ' (lật kèo)' : ''}`);
   }
 }
 

@@ -1,8 +1,8 @@
 {
   "port": 8787,
-  "tiktokUsername": "",
+  "tiktokUsername": "yute009",
   "hostName": "Anh Trường",
-  "venueName": "66B Nguyễn sĩ bách",
+  "venueName": "66B Nguyễn sĩ sách",
   "speechPerMinute": 6,
   "afkMinutes": 6,
   "directorEnabled": true,
@@ -38,7 +38,7 @@
   },
   "music": {
     "enabled": true,
-    "volume": 62,
+    "volume": 66,
     "ducking": false,
     "track": "Tâm Sự Đêm Khuya Trường Con Nghe trước khi đi ngủ.mp3",
     "loop": "all"

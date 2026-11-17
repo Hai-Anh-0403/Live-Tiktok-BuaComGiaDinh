@@ -39,8 +39,8 @@
     "Ơ hoá đơn này của mâm nào thế? Thôi kệ, anh thanh toán rồi!"
   ],
   "quang": [
-    "Quang đã nói thế rồi thì ok đi em!",
-    "{nick} hỏi Quang à? Quang nói thế rồi, ok đi em!"
+    "Kỳ Anh đã nói thế rồi thì ok đi em!",
+    "{nick} hỏi Kỳ Anh à? Kỳ Anh nói thế rồi, ok đi em!"
   ],
   "request_food": [
     "Ơ, mâm {table} chưa có cơm à? Mang thêm ra ngay, anh em về đây là phải ăn uống đầy đủ!",
@@ -145,31 +145,31 @@
     "Thôi, ông cụ đi nghỉ đây. Anh lại là anh của các em đây!"
   ],
   "quang_drop": [
-    "Quang đây! Gọi Quang có việc gì? Thôi, Quang đã nói thế rồi thì ok đi em!",
-    "Ai gọi Quang đấy? Mâm {table} vui thế này thì Quang ok hết!"
+    "Kỳ Anh đây! Gọi Kỳ Anh có việc gì? Thôi, Kỳ Anh đã nói thế rồi thì ok đi em!",
+    "Ai gọi Kỳ Anh đấy? Mâm {table} vui thế này thì Kỳ Anh ok hết!"
   ],
   "quang_intro": [
-    "Anh em đang cãi nhau à? Để anh gọi Quang ra phân xử!",
-    "Việc khó thế này phải hỏi Quang!"
+    "Anh em đang cãi nhau à? Để anh gọi Kỳ Anh ra phân xử!",
+    "Việc khó thế này phải hỏi Kỳ Anh!"
   ],
   "quang_arrive": [
-    "Quang đến rồi đây! Để Quang nghe anh em bỏ phiếu đã.",
-    "Rồi rồi, Quang nghe hết rồi. Để Quang nghĩ một tí."
+    "Kỳ Anh đến rồi đây! Để Kỳ Anh nghe anh em bỏ phiếu đã.",
+    "Rồi rồi, Kỳ Anh nghe hết rồi. Để Kỳ Anh nghĩ một tí."
   ],
   "quang_verdict": [
-    "Quang chọn phe {side}: {answer}! Quang đã nói thế rồi thì ok đi em!",
-    "Phe {side}, {answer}! Quang đã nói thế rồi thì ok đi em!"
+    "Kỳ Anh chọn phe {side}: {answer}! Kỳ Anh đã nói thế rồi thì ok đi em!",
+    "Phe {side}, {answer}! Kỳ Anh đã nói thế rồi thì ok đi em!"
   ],
   "quang_host_agree": [
-    "Đấy, Quang nói chuẩn quá! Phe {side} được thưởng nhé!",
-    "Quang đã phán thì cả sân nghe theo! Phe {side} thắng!"
+    "Đấy, Kỳ Anh nói chuẩn quá! Phe {side} được thưởng nhé!",
+    "Kỳ Anh đã phán thì cả sân nghe theo! Phe {side} thắng!"
   ],
   "quang_host_twist": [
-    "Ơ, phe ít người mà Quang lại chọn! Thôi, Quang đã nói thế rồi thì ok đi em!",
-    "Bất ngờ chưa! Quang đứng về phe {side}. Anh cũng chịu Quang luôn!"
+    "Ơ, phe ít người mà Kỳ Anh lại chọn! Thôi, Kỳ Anh đã nói thế rồi thì ok đi em!",
+    "Bất ngờ chưa! Kỳ Anh đứng về phe {side}. Anh cũng chịu Kỳ Anh luôn!"
   ],
   "quang_none": [
-    "Không ai bỏ phiếu à? Thôi Quang chọn đại vậy!"
+    "Không ai bỏ phiếu à? Thôi Kỳ Anh chọn đại vậy!"
   ],
   "crowd_line": [
     "Đông vui quá! Cả sân năm châu bốn bể về đây hết rồi!",
@@ -207,24 +207,24 @@
     "Gà luộc xé tay phải chia đều, thế mới là tình nghĩa!"
   ],
   "chuc_ask": [
-    "Mâm {table} ơi, cho chú xin miếng gà với! Chú đói từ sáng đến giờ.",
-    "Chú ngồi ké tí thôi, mâm {table} có mời chú không?"
+    "Mâm {table} ơi, cho Tiến Bịp xin miếng gà với! Đói từ sáng đến giờ.",
+    "Tiến Bịp ngồi ké tí thôi, mâm {table} có mời không?"
   ],
   "chuc_happy": [
-    "Mâm này hiếu khách quá! Chú cảm ơn nhé!",
+    "Mâm này hiếu khách quá! Tiến Bịp cảm ơn nhé!",
     "Ngon quá! Mâm {table} tốt bụng ghê!"
   ],
   "chuc_sad": [
-    "Thôi được rồi, chú sang mâm khác vậy...",
-    "Đuổi chú à? Chú đi đây, buồn ghê!"
+    "Thôi được rồi, Tiến Bịp sang mâm khác vậy...",
+    "Đuổi Tiến Bịp à? Đi đây, buồn ghê!"
   ],
   "chuc_next": [
-    "Sang mâm này xem có ai mời chú không nào!"
+    "Sang mâm này xem có ai mời Tiến Bịp không nào!"
   ],
   "chuc_thanks": [
-    "Cả sân tốt với chú quá! Chú hát tặng cả sân một bài nhé! Tình tính tang tang tính tình!"
+    "Cả sân tốt với Tiến Bịp quá! Hát tặng cả sân một bài nhé! Tình tính tang tang tính tình!"
   ],
   "chuc_leave": [
-    "No rồi, chú về đây! Hôm sau chú lại sang!"
+    "No rồi, Tiến Bịp về đây! Hôm sau lại sang!"
   ]
 }

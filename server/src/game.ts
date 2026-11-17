@@ -656,8 +656,8 @@ export class Game {
   /** Gọi NPC bằng tay từ bảng điều khiển. */
   callNpc(id: 'quang' | 'chuc') {
     if (id === 'chuc') {
-      if (this.chuc.isActive) this.log('system', 'Chú Chực đang ở trong sân rồi');
-      else if (!this.chuc.start()) this.log('system', 'Chú Chực: chưa có mâm nào có khách');
+      if (this.chuc.isActive) this.log('system', 'Tiến Bịp đang ở trong sân rồi');
+      else if (!this.chuc.start()) this.log('system', 'Tiến Bịp: chưa có mâm nào có khách');
       return;
     }
     if (this.npc.isPresent('quang')) return;

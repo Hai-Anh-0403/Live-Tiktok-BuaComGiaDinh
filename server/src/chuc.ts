@@ -36,7 +36,7 @@ export class ChucController {
     this.invites.clear();
     this.totalInvites = 0;
     this.goTo(t, true);
-    this.ctx.log('Chú Chực vào sân xin ăn');
+    this.ctx.log('Tiến Bịp vào sân xin ăn');
     return true;
   }
 
@@ -92,7 +92,7 @@ export class ChucController {
       this.leaveAt = Date.now() + STAY_MS;
       this.ctx.broadcast({ t: 'npc_emote', id: 'chuc', kind: 'chicken' });
       this.ctx.sayAs('chuc_ask', { table: t + 1 }, 3, { speaker: 'chuc', voice: CHUC_VOICE });
-      this.ctx.broadcast({ t: 'banner', text: `Chú Chực xin ăn ở mâm ${t + 1}: chat "mời chú" hoặc "đuổi"`, ms: 5000 });
+      this.ctx.broadcast({ t: 'banner', text: `Tiến Bịp xin ăn ở mâm ${t + 1}: chat "mời chú" hoặc "đuổi"`, ms: 5000 });
     };
     if (spawn) this.ctx.npc.spawn('chuc', { kind: 'table', table: t }, onArrive);
     else this.ctx.npc.goto('chuc', { kind: 'table', table: t }, onArrive);
@@ -106,7 +106,7 @@ export class ChucController {
     } else {
       this.ctx.sayAs('chuc_leave', {}, 1, { speaker: 'chuc', voice: CHUC_VOICE });
     }
-    this.ctx.log(`Chú Chực về: ${this.totalInvites} lời mời qua ${this.visited.length} mâm`);
+    this.ctx.log(`Tiến Bịp về: ${this.totalInvites} lời mời qua ${this.visited.length} mâm`);
     this.active = false;
     setTimeout(() => this.ctx.npc.leave('chuc'), 4000);
     this.scheduleNext();

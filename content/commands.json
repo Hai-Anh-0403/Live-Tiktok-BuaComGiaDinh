@@ -121,7 +121,8 @@
     {
       "intent": "QUANG",
       "patterns": [
-        "\\bquang\\b"
+        "\\bquang\\b",
+        "\\bky anh\\b"
       ]
     },
     {

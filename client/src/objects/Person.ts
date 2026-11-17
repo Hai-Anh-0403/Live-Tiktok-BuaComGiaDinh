@@ -31,6 +31,7 @@ export class Person extends Phaser.GameObjects.Container {
   private pose: 'stand' | 'sit' = 'stand';
   private poseDy = 0;
   private zzz?: Phaser.Time.TimerEvent;
+  private baseScale = 1;
 
   constructor(scene: Phaser.Scene, x: number, y: number, anchor: number, look: Look, name: string, opts: { host?: boolean; npc?: boolean } = {}) {
     super(scene, x, y);
@@ -42,7 +43,7 @@ export class Person extends Phaser.GameObjects.Container {
     // Vẽ 1 lần thành texture rồi dùng Image (Graphics vẽ lại mỗi frame rất tốn khi có 150 người)
     this.ring = scene.add.image(0, 4, ringTexture(scene)).setScale(this.sc).setVisible(false);
     this.bodyG = scene.add.image(0, 0, bodyTexture(scene, look, this.isHost)).setOrigin(0.5, BODY_OY / BODY_H);
-    this.bodyG.setScale(this.sc / BAKE);
+    this.syncBodyScale();
 
     this.nameT = scene.add.text(0, -62 * this.sc, opts.host || opts.npc ? name : shortName(name), {
       fontFamily: 'system-ui, "Segoe UI", Arial, sans-serif',
@@ -62,21 +63,32 @@ export class Person extends Phaser.GameObjects.Container {
     this.add([this.ring, this.bodyG, this.nameT]);
     if (this.isHost) {
       // miệng mấp máy theo âm lượng giọng
-      this.mouth = scene.add.ellipse(0, -43 * this.sc, 7 * this.sc, 1.5 * this.sc, 0x5a1a10);
+      this.mouth = scene.add.ellipse(0, -43 * this.sc, 7 * this.sc, 1.5 * this.sc, 0x5a1a10).setVisible(false);
       this.add(this.mouth);
     }
     scene.add.existing(this);
     this.setDepth(y);
   }
 
+  private syncBodyScale() {
+    const texH = this.bodyG.height || BODY_H * BAKE;
+    this.baseScale = this.sc * (BODY_H / texH);
+    this.bodyG.setScale(this.baseScale, this.baseScale * (this.pose === 'sit' ? 0.86 : 1));
+  }
+
   setLabel(n: string) { this.nameT.setText(shortName(n)); }
 
   /** Đổi ngoại hình (vd. chủ tiệc hoá ông cụ). */
-  setLook(look: Look) { this.bodyG.setTexture(bodyTexture(this.scene, look, this.isHost)); }
+  setLook(look: Look) {
+    this.bodyG.setTexture(bodyTexture(this.scene, look, this.isHost));
+    this.syncBodyScale();
+  }
 
   /** 0 = ngậm, 1 = mở to */
   setMouth(level: number) {
     if (!this.mouth) return;
+    if (level <= 0.04) { this.mouth.setVisible(false); return; }
+    this.mouth.setVisible(true);
     this.mouth.setDisplaySize(7 * this.sc, (1.5 + level * 6) * this.sc);
     this.mouth.y = this.bodyG.y - 43 * this.sc + level * 1.5 * this.sc;
   }
@@ -86,7 +98,7 @@ export class Person extends Phaser.GameObjects.Container {
     if (pose === this.pose) return;
     this.pose = pose;
     this.poseDy = pose === 'sit' ? 10 * this.sc : 0;
-    this.bodyG.setScale(this.sc / BAKE, (this.sc / BAKE) * (pose === 'sit' ? 0.86 : 1));
+    this.syncBodyScale();
     this.nameT.y = -62 * this.sc + this.poseDy;
     this.zzz?.remove();
     if (pose === 'sit') this.zzz = this.scene.time.addEvent({ delay: 2200, loop: true, callback: () => this.emote('sleep') });
@@ -174,7 +186,16 @@ function shortName(n: string) { return n.length > 11 ? n.slice(0, 10) + '…' : 
 const BAKE = 2;          // vẽ ở độ phân giải 2x cho nét
 const BODY_W = 64, BODY_H = 84, BODY_OY = 72; // khung texture; gốc chân nằm ở (32, 72)
 
+export const ATLAS_KEY = 'people';
+export const HOST_SPRITE_KEY = 'char_host';
+export const GUEST_SPRITE_COUNT = 5;
+
 function bodyTexture(scene: Phaser.Scene, l: Look, host: boolean): string {
+  if (l.special === 'host' && scene.textures.exists(HOST_SPRITE_KEY)) return HOST_SPRITE_KEY;
+  if (!l.special && l.guestSprite !== undefined) {
+    const gk = `guest_${l.guestSprite}`;
+    if (scene.textures.exists(gk)) return gk;
+  }
   const key = `body_${host ? 'h' : ''}${l.skin}_${l.shirt}_${l.pants}_${l.hair}_${l.hairStyle}_${l.accessory}_${l.beard ? 'b' : ''}_${l.pattern ?? ''}_${l.shirtStyle}`;
   if (scene.textures.exists(key)) return key;
   const fromAtlas = atlasTexture(scene, key, l);
@@ -202,7 +223,6 @@ function ringTexture(scene: Phaser.Scene): string {
 // ---------- Sprite AI theo lớp (M6) ----------
 // Nếu có client/public/assets/people.png + people.json (atlas Phaser), ghép các lớp (đã vẽ xám) và tô màu,
 // "bake" vào một DynamicTexture theo Look → vẫn rẻ như cache hình khối. Quy cách: docs/SPRITE-PROMPTS.md
-export const ATLAS_KEY = 'people';
 
 function hasFrame(scene: Phaser.Scene, f: string) {
   return scene.textures.exists(ATLAS_KEY) && scene.textures.get(ATLAS_KEY).has(f);

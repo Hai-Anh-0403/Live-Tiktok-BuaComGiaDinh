@@ -14,7 +14,7 @@ interface NpcState {
   onArrive?: () => void;
 }
 
-export const NPC_NAMES: Record<NpcId, string> = { quang: 'Chú Quang', chuc: 'Chú Chực' };
+export const NPC_NAMES: Record<NpcId, string> = { quang: 'Kỳ Anh', chuc: 'Tiến Bịp' };
 
 export class NpcManager {
   private npcs = new Map<NpcId, NpcState>();

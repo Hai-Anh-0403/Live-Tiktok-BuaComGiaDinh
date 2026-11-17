@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { GATE, HOST_STAGE_SPOT, STAGE_NODE, W, GATE_NODE, COUNTER_NODE } from '../../../shared/layout';
 import type { GuestDTO, HeatDTO, NpcId, NpcTarget, ServerMsg, SettingsDTO, Speaker, StatsDTO, VoiceFx } from '../../../shared/protocol';
 import { Socket } from '../net/socket';
-import { ATLAS_KEY, Person } from '../objects/Person';
+import { ATLAS_KEY, GUEST_SPRITE_COUNT, HOST_SPRITE_KEY, Person } from '../objects/Person';
 import { CHUC_LOOK, HOST_LOOK, HOST_OLD_LOOK, QUANG_LOOK, decodeLook } from '../objects/look';
 import { TableUI } from '../objects/TableUI';
 import { EventPanel } from '../objects/EventPanel';
@@ -51,6 +51,8 @@ export class PartyScene extends Phaser.Scene {
   preload() {
     // Đồ hoạ AI (tuỳ chọn). Không có file thì dùng hình vẽ tay.
     this.load.image('bg-ai', 'assets/bg.png');
+    this.load.image(HOST_SPRITE_KEY, 'assets/host.png');
+    for (let i = 0; i < GUEST_SPRITE_COUNT; i++) this.load.image(`guest_${i}`, `assets/guest_${i}.png`);
     this.load.atlas(ATLAS_KEY, 'assets/people.png', 'assets/people.json');
     this.load.on('loaderror', () => { /* bỏ qua: chưa có asset */ });
   }
