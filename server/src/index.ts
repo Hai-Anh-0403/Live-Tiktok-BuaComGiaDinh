@@ -6,6 +6,7 @@ import type { ClientMsg, EventId, SecretName, SettingsDTO, VoiceFx } from '../..
 import { AiClassifier } from './ai/classifier.js';
 import { Game } from './game.js';
 import { SessionMetrics } from './metrics.js';
+import { deleteMusicTrack, ensureMusicDir, handleMusicUpload, listMusicTracks, serveMusicStream } from './music.js';
 import { TtsService } from './tts/service.js';
 import { defaultTts, type Secrets } from './tts/providers.js';
 import { CLIENT_DIST, ROOT } from './paths.js';
@@ -26,8 +27,9 @@ const DEFAULTS: SettingsDTO & { port: number } = {
   joinRequiresCommand: true,
   tts: defaultTts(),
   voiceVolume: 90,
-  ambience: true,
-  ambienceVolume: 30,
+  ambience: false,
+  ambienceVolume: 0,
+  music: { enabled: true, volume: 35, ducking: false, track: '', loop: 'all' },
   ai: { enabled: false, provider: 'anthropic', model: 'claude-haiku-5-5', baseUrl: '', maxCallsPerMinute: 20 },
   disclaimer: { show: true, text: '🎭 Parody giải trí · Nhân vật hư cấu, giọng nói do AI tạo · Không phải người thật' },
   npc: { quangOnCall: true, chucEnabled: true, quangVoice: { rate: 10, pitch: 12 } },
@@ -37,9 +39,13 @@ const fileCfg = existsSync(cfgFile) ? JSON.parse(readFileSync(cfgFile, 'utf8')) 
 delete fileCfg.overlayVoice; // cài đặt cũ (0.2) — nay chọn "Trình duyệt" trong mục Giọng
 const cfg = {
   ...DEFAULTS, ...fileCfg,
-  tts: { ...DEFAULTS.tts, ...fileCfg.tts }, ai: { ...DEFAULTS.ai, ...fileCfg.ai }, disclaimer: { ...DEFAULTS.disclaimer, ...fileCfg.disclaimer },
+  tts: { ...DEFAULTS.tts, ...fileCfg.tts },
+  music: { ...DEFAULTS.music, ...fileCfg.music },
+  ai: { ...DEFAULTS.ai, ...fileCfg.ai },
+  disclaimer: { ...DEFAULTS.disclaimer, ...fileCfg.disclaimer },
   npc: { ...DEFAULTS.npc, ...fileCfg.npc, quangVoice: { ...DEFAULTS.npc.quangVoice, ...fileCfg.npc?.quangVoice } },
 };
+ensureMusicDir();
 
 // Khoá API để riêng trong secrets.json (đã có trong .gitignore), không bao giờ gửi ra trình duyệt
 const secretsFile = join(ROOT, 'secrets.json');
@@ -140,6 +146,8 @@ const live = createTikTokAdapter({
   },
 });
 
+const LOCAL_ORIGIN = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/;
+
 // ---------- HTTP: phục vụ client đã build ----------
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png',
@@ -148,6 +156,23 @@ const MIME: Record<string, string> = {
 const server = createServer((req, res) => {
   const url = new URL(req.url ?? '/', 'http://x');
   if (url.pathname === '/health') { res.end(JSON.stringify(game.stats())); return; }
+  if (req.method === 'POST' && url.pathname === '/music/upload') {
+    const origin = req.headers.origin;
+    if (origin && !LOCAL_ORIGIN.test(origin) && listenHost !== '0.0.0.0') { res.writeHead(403); res.end(); return; }
+    const rawName = url.searchParams.get('name') ?? '';
+    handleMusicUpload(req, res, rawName, (name, sizeBytes) => {
+      const mb = (sizeBytes / (1024 * 1024)).toFixed(1);
+      game.log('system', `Đã thêm nhạc nền: ${name} (${mb} MB)`);
+      game.broadcast({ t: 'music_list', tracks: listMusicTracks() });
+      if (!game.settings.music.track) game.patchSettings({ music: { ...game.settings.music, track: name, enabled: true } });
+    });
+    return;
+  }
+  const musicMatch = url.pathname.match(/^\/music\/(.+)$/);
+  if (musicMatch && (req.method === 'GET' || req.method === 'HEAD')) {
+    serveMusicStream(req, res, decodeURIComponent(musicMatch[1]));
+    return;
+  }
   const rep = url.pathname.match(/^\/sessions\/([A-Za-z0-9._-]+\.html)$/);
   if (rep) {
     const f = join(metrics.sessionsDir, rep[1]);
@@ -179,9 +204,11 @@ const server = createServer((req, res) => {
   res.writeHead(200, { 'content-type': MIME[extname(p)] ?? 'application/octet-stream', 'cache-control': 'no-cache' });
   res.end(readFileSync(p));
 });
+// Không giới hạn timeout cho các luồng upload hoặc stream file nhạc lớn (> 500MB - nhiều GB)
+server.requestTimeout = 0;
+server.headersTimeout = 0;
 
 // ---------- WebSocket ----------
-const LOCAL_ORIGIN = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/;
 const wss = new WebSocketServer({ server, path: '/ws' });
 wss.on('connection', (ws, req) => {
   // Chỉ cho trang local điều khiển (chặn trang web lạ gửi lệnh qua trình duyệt của bạn)
@@ -190,6 +217,7 @@ wss.on('connection', (ws, req) => {
   (req.socket as any).setNoDelay?.(true);
   const send = (m: import('../../shared/protocol.js').ServerMsg) => { if (ws.readyState === ws.OPEN) ws.send(JSON.stringify(m)); };
   const conn = game.attach(send);
+  send({ t: 'music_list', tracks: listMusicTracks() });
   let role: 'overlay' | 'preview' | 'control' = 'overlay';
 
   ws.on('message', (buf) => {
@@ -255,6 +283,22 @@ wss.on('connection', (ws, req) => {
         return;
       }
       case 'sim_bots': sim.setTarget(Number(m.count) || 0); game.log('system', `Giả lập: ${sim.count} bot`); return;
+      case 'music_refresh':
+        game.broadcast({ t: 'music_list', tracks: listMusicTracks() });
+        return;
+      case 'music_delete': {
+        if (deleteMusicTrack(m.name)) {
+          game.log('system', `Đã xoá nhạc nền: ${m.name}`);
+          if (game.settings.music.track === m.name) game.patchSettings({ music: { ...game.settings.music, track: '' } });
+          game.broadcast({ t: 'music_list', tracks: listMusicTracks() });
+        }
+        return;
+      }
+      case 'music_ctl':
+        if (m.action === 'next' || m.action === 'prev' || m.action === 'restart') {
+          game.broadcast({ t: 'music_ctl', action: m.action });
+        }
+        return;
     }
   });
   ws.on('close', conn.detach);

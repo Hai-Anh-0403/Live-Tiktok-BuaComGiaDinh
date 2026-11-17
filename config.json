@@ -2,7 +2,7 @@
   "port": 8787,
   "tiktokUsername": "",
   "hostName": "Anh Trường",
-  "venueName": "66B Ngõ Tình Nghĩa",
+  "venueName": "66B Nguyễn sĩ bách",
   "speechPerMinute": 6,
   "afkMinutes": 6,
   "directorEnabled": true,
@@ -15,8 +15,8 @@
     "pitch": -6
   },
   "voiceVolume": 90,
-  "ambience": true,
-  "ambienceVolume": 30,
+  "ambience": false,
+  "ambienceVolume": 0,
   "ai": {
     "enabled": false,
     "provider": "anthropic",
@@ -35,5 +35,12 @@
       "rate": 10,
       "pitch": 12
     }
+  },
+  "music": {
+    "enabled": true,
+    "volume": 62,
+    "ducking": false,
+    "track": "Tâm Sự Đêm Khuya Trường Con Nghe trước khi đi ngủ.mp3",
+    "loop": "all"
   }
 }

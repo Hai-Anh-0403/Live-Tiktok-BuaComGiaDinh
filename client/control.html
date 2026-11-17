@@ -126,6 +126,47 @@
       </section>
 
       <section>
+        <div class="label">07 / NHẠC NỀN (GHÉP NHẠC)</div>
+        <label class="check"><input id="musicEnabled" type="checkbox" /> Bật phát nhạc nền trên màn hình live</label>
+        <label class="check"><input id="musicDucking" type="checkbox" /> Tự nhỏ nhạc khi chủ tiệc / NPC nói (Auto-ducking)</label>
+        <div class="two">
+          <label class="field"><span>Bài nhạc (<b id="musicCount">0</b> file)</span>
+            <select id="musicTrack">
+              <option value="">▶ Phát tất cả trong thư mục music/</option>
+            </select>
+          </label>
+          <label class="field"><span>Chế độ phát</span>
+            <select id="musicLoop">
+              <option value="all">🔁 Lặp tất cả</option>
+              <option value="one">🔂 Lặp 1 bài</option>
+              <option value="shuffle">🔀 Ngẫu nhiên</option>
+            </select>
+          </label>
+        </div>
+        <label class="field mt"><span>Âm lượng nhạc nền: <b id="musicVolVal">35</b>%</span><input id="musicVol" type="range" min="0" max="100" /></label>
+        <div class="buttons">
+          <button id="musicPrev" title="Bài trước">⏮ Trước</button>
+          <button id="musicRestart" title="Phát lại từ đầu">↺ Đầu bài</button>
+          <button id="musicNext" title="Bài tiếp theo">⏭ Tiếp</button>
+          <button id="musicRefresh" title="Quét lại thư mục music/">↻ Quét</button>
+        </div>
+        <div class="buttons">
+          <button id="musicPreviewBtn">▶ Nghe thử ở đây</button>
+        </div>
+        <audio id="musicPreviewAudio" controls preload="metadata" style="width:100%;margin-top:8px;height:36px" hidden></audio>
+        <input id="musicFile" type="file" accept=".mp3,.wav,.flac,.m4a,.aac,.ogg,.opus,.webm,audio/*" multiple hidden />
+        <div class="buttons">
+          <button id="musicUploadBtn" class="primary">＋ Thêm file nhạc (&gt;500MB)</button>
+          <button id="musicDeleteBtn" class="danger" title="Xoá bài đang chọn khỏi thư mục music/">🗑 Xoá bài</button>
+        </div>
+        <div id="musicUploadWrap" class="uploadWrap" hidden>
+          <div class="bar"><i id="musicUploadBar"></i></div>
+          <small id="musicUploadText"></small>
+        </div>
+        <p class="hint">Phát bằng <b>HTTP Range Streaming</b> nên file nhạc dài <b>&gt; 500MB – nhiều GB</b> (.mp3, .wav, .flac, .m4a, .ogg) chạy ngay không tốn RAM. Bạn có thể bấm nút Thêm ở trên hoặc chép thẳng file vào thư mục <code>music/</code> rồi bấm <b>↻ Quét</b>.</p>
+      </section>
+
+      <section>
         <div class="label">08 / GIỌNG CHỦ TIỆC</div>
         <div class="two">
           <label class="field"><span>Nhà cung cấp</span>
@@ -159,10 +200,7 @@
           <button id="ttsPrerender">⤓ Render sẵn thư viện thoại</button>
           <button id="ttsClear">🗑 Xoá cache</button>
         </div>
-        <div class="two">
-          <label class="field"><span>Âm lượng giọng: <b id="volVal"></b></span><input id="voiceVol" type="range" min="0" max="100" /></label>
-          <label class="field"><span><label class="inline"><input id="ambience" type="checkbox" /> Tiếng nền tiệc</label>: <b id="ambVal"></b></span><input id="ambVol" type="range" min="0" max="100" /></label>
-        </div>
+        <label class="field mt"><span>Âm lượng giọng: <b id="volVal"></b>%</span><input id="voiceVol" type="range" min="0" max="100" /></label>
         <p class="hint">Dùng <b>giọng có sẵn</b> của nhà cung cấp rồi chỉnh tốc độ/cao độ cho ra chất "anh cả bàn nhậu". Dự án không clone giọng người thật. Key lưu trong <code>secrets.json</code> trên máy bạn, không gửi lên đâu khác ngoài nhà cung cấp.</p>
       </section>
 

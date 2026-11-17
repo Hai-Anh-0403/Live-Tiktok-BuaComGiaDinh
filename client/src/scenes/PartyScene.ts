@@ -56,6 +56,7 @@ export class PartyScene extends Phaser.Scene {
   }
 
   create() {
+    this.audio.muted = IS_PREVIEW;
     this.venueSign = drawVenue(this, '66B Ngõ Tình Nghĩa');
     this.tables = new TableUI(this);
     this.eventPanel = new EventPanel(this);
@@ -120,6 +121,8 @@ export class PartyScene extends Phaser.Scene {
       case 'heat': return this.setHeat(m.heat);
       case 'prop': return m.show ? this.ga.show(m.amount) : this.ga.hide();
       case 'ga_piece': return this.ga.piece(m.table, m.left);
+      case 'music_list': return this.audio.setMusicTracks(m.tracks);
+      case 'music_ctl': return this.audio.musicControl(m.action);
     }
   }
 
@@ -203,7 +206,8 @@ export class PartyScene extends Phaser.Scene {
     this.disclaimer.setText(s.disclaimer.text);
     if (this.disclaimer.width > W - 90) this.disclaimer.setScale((W - 90) / this.disclaimer.width); else this.disclaimer.setScale(1);
     this.drawBottomBar(s.disclaimer.show);
-    this.audio.setVolumes(s.voiceVolume / 100, s.ambience, s.ambienceVolume / 100);
+    this.audio.setVolumes(s.voiceVolume / 100);
+    if (s.music) this.audio.setMusic(s.music);
   }
 
   private spawnGuest(g: GuestDTO, walkIn: boolean) {

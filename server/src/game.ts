@@ -205,6 +205,15 @@ export class Game {
     if (typeof patch.voiceVolume === 'number') s.voiceVolume = clamp(patch.voiceVolume, 0, 100);
     if (typeof patch.ambience === 'boolean') s.ambience = patch.ambience;
     if (typeof patch.ambienceVolume === 'number') s.ambienceVolume = clamp(patch.ambienceVolume, 0, 100);
+    if (patch.music && typeof patch.music === 'object') {
+      const m = { ...s.music, ...patch.music };
+      m.enabled = !!m.enabled;
+      m.volume = clamp(Number(m.volume) ?? 35, 0, 100);
+      m.ducking = !!m.ducking;
+      m.track = String(m.track ?? '').trim().slice(0, 180);
+      if (!['all', 'one', 'shuffle'].includes(m.loop)) m.loop = 'all';
+      s.music = m;
+    }
     if (patch.tts && typeof patch.tts === 'object') {
       const t = { ...s.tts, ...patch.tts };
       const providers = ['edge', 'google', 'fpt', 'elevenlabs', 'browser', 'off'];

@@ -24,6 +24,7 @@ Giữ cửa sổ server (màu đen) mở trong suốt buổi live. Bảng điề
 | 04 Chủ tiệc | Gõ câu cho chủ tiệc nói, đổi tên, biển cổng, số câu/phút, thời gian tự về |
 | 05 Thử tương tác | Comment giả, nút lệnh nhanh, thêm 20/60/150 bot |
 | 06 Sân tiệc | Số khách, comment/10s, điểm Tình nghĩa 9 mâm, dọn sân |
+| 07 Nhạc nền (ghép nhạc) | Phát nhạc nền từ `music/`, hỗ trợ file > 500MB – nhiều GB (HTTP Range streaming), tự nhỏ nhạc khi chủ tiệc nói (Auto-ducking), chọn bài / lặp / ngẫu nhiên |
 | 08 Giọng chủ tiệc | Chọn TTS, giọng, tốc độ, cao độ, lưu key, nghe thử (thường / ông cụ), render sẵn, âm lượng, tiếng nền |
 | 09 AI hiểu comment | Bật tầng 2, chọn Claude / OpenAI-compatible / thử nghiệm, model, key, giới hạn gọi/phút, ô thử |
 | 10 Nhật ký | Live / sự kiện / quà / comment / hệ thống, lọc theo loại |
@@ -163,6 +164,7 @@ sessions/                   log + báo cáo các phiên live
 docs/KE-HOACH-MVP4.md       kế hoạch MVP 4 (đã triển khai ở bản 0.5)
 docs/SPRITE-PROMPTS.md      quy cách sprite AI theo lớp + bộ prompt
 cache/tts/                  file giọng đã tạo
+music/                      file nhạc nền (hỗ trợ > 500MB - nhiều GB, tự stream qua HTTP Range)
 content/commands.json       lệnh chat → intent (regex không dấu)
 content/lines.json          thoại chủ tiệc + thoại sự kiện
 content/blocklist.json      lọc tên / comment bậy

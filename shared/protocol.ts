@@ -95,6 +95,26 @@ export interface AiSettings {
 /** Khoá API lưu riêng trong secrets.json — bảng điều khiển chỉ biết là đã có hay chưa. */
 export type SecretName = 'googleKey' | 'fptKey' | 'elevenKey' | 'anthropicKey' | 'openaiKey';
 
+export type MusicLoopMode = 'all' | 'one' | 'shuffle';
+
+export interface MusicSettings {
+  /** Bật/tắt phát nhạc nền */
+  enabled: boolean;
+  /** Âm lượng nhạc nền 0..100 */
+  volume: number;
+  /** Tự nhỏ nhạc nền khi chủ tiệc / NPC đang nói */
+  ducking: boolean;
+  /** Tên file nhạc đang chọn ('' = phát tất cả trong thư mục music/) */
+  track: string;
+  /** Chế độ lặp: tất cả / 1 bài / ngẫu nhiên */
+  loop: MusicLoopMode;
+}
+
+export interface MusicTrackDTO {
+  name: string;
+  sizeBytes: number;
+}
+
 export interface SettingsDTO {
   hostName: string;
   venueName: string;
@@ -111,6 +131,8 @@ export interface SettingsDTO {
   /** Tiếng nền bữa tiệc (xì xào, cụng ly) */
   ambience: boolean;
   ambienceVolume: number;
+  /** Nhạc nền ghép thêm (hỗ trợ file > 500MB qua HTTP Range streaming) */
+  music: MusicSettings;
   ai: AiSettings;
   /** Nhãn cố định trên màn hình live: nội dung giải trí / nhân vật & giọng do AI tạo */
   disclaimer: { show: boolean; text: string };
@@ -227,6 +249,8 @@ export type ServerMsg =
   | { t: 'prop'; id: 'ga'; show: boolean; amount: number }
   | { t: 'ga_piece'; table: number; left: number }
   | { t: 'photo'; names: string[]; caption: string; ms: number }
+  | { t: 'music_list'; tracks: MusicTrackDTO[] }
+  | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' }
   // chỉ gửi cho bảng điều khiển
   | { t: 'log'; entries: LogDTO[] }
   | { t: 'director'; enabled: boolean; nextInSec: number | null }
@@ -262,4 +286,7 @@ export type ClientMsg =
   | { t: 'host_say'; text: string }
   | { t: 'reset_room' }
   | { t: 'sim_comment'; nick: string; text: string }
-  | { t: 'sim_bots'; count: number };
+  | { t: 'sim_bots'; count: number }
+  | { t: 'music_refresh' }
+  | { t: 'music_delete'; name: string }
+  | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' };

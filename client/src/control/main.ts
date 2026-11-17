@@ -1,6 +1,6 @@
 import { TABLE_COUNT } from '../../../shared/layout';
 import type {
-  AiStatusDTO, BondDTO, HeatDTO, MetricsDTO, SessionListItem, EventDTO, EventId, LiveStateDTO, LogDTO, SecretName, ServerMsg, SettingsDTO, StatsDTO, TtsProviderId, TtsStatusDTO,
+  AiStatusDTO, BondDTO, HeatDTO, MetricsDTO, MusicLoopMode, MusicTrackDTO, SessionListItem, EventDTO, EventId, LiveStateDTO, LogDTO, SecretName, ServerMsg, SettingsDTO, StatsDTO, TtsProviderId, TtsStatusDTO,
 } from '../../../shared/protocol';
 import { Socket } from '../net/socket';
 
@@ -42,6 +42,7 @@ sock.onMessage((m: ServerMsg) => {
     case 'tts_status': return applyTtsStatus(m.status);
     case 'metrics': return applyMetrics(m.m);
     case 'heat': return applyHeat(m.heat);
+    case 'music_list': return applyMusicTracks(m.tracks);
     case 'sessions': return applySessions(m.list);
     case 'session_report': {
       const el = $('sessReport');
@@ -78,6 +79,7 @@ function applySettings(s: SettingsDTO) {
   $('spmVal').textContent = String(s.speechPerMinute);
   keep(inputs.afk, String(s.afkMinutes));
   applyVoiceSettings(s);
+  applyMusicSettings(s);
   $<HTMLInputElement>('quangOnCall').checked = s.npc.quangOnCall;
   $<HTMLInputElement>('chucEnabled').checked = s.npc.chucEnabled;
   keep($<HTMLInputElement>('qRate'), String(s.npc.quangVoice.rate)); $('qRateVal').textContent = pctText(s.npc.quangVoice.rate);
@@ -246,7 +248,7 @@ const tts = {
   provider: $<HTMLSelectElement>('ttsProvider'), voice: $<HTMLInputElement>('ttsVoice'),
   rate: $<HTMLInputElement>('ttsRate'), pitch: $<HTMLInputElement>('ttsPitch'),
   key: $<HTMLInputElement>('ttsKey'), testText: $<HTMLInputElement>('ttsTestText'),
-  vol: $<HTMLInputElement>('voiceVol'), amb: $<HTMLInputElement>('ambience'), ambVol: $<HTMLInputElement>('ambVol'),
+  vol: $<HTMLInputElement>('voiceVol'),
 };
 const aiIn = {
   enabled: $<HTMLInputElement>('aiEnabled'), provider: $<HTMLSelectElement>('aiProvider'), model: $<HTMLInputElement>('aiModel'),
@@ -278,8 +280,6 @@ function applyVoiceSettings(s: SettingsDTO) {
   $<HTMLButtonElement>('ttsTestOld').disabled = !serverTts;
   $<HTMLButtonElement>('ttsPrerender').disabled = !serverTts;
   keep(tts.vol, String(s.voiceVolume)); $('volVal').textContent = String(s.voiceVolume);
-  tts.amb.checked = s.ambience;
-  keep(tts.ambVol, String(s.ambienceVolume)); $('ambVal').textContent = String(s.ambienceVolume);
 
   // AI
   aiIn.enabled.checked = s.ai.enabled;
@@ -351,9 +351,6 @@ $('ttsKeySave').onclick = () => {
 };
 tts.vol.oninput = () => { $('volVal').textContent = tts.vol.value; };
 tts.vol.onchange = () => patch({ voiceVolume: Number(tts.vol.value) });
-tts.amb.onchange = () => patch({ ambience: tts.amb.checked });
-tts.ambVol.oninput = () => { $('ambVal').textContent = tts.ambVol.value; };
-tts.ambVol.onchange = () => patch({ ambienceVolume: Number(tts.ambVol.value) });
 
 // ---------- 09 / AI ----------
 const aiPatch = () => patch({ ai: {
@@ -463,3 +460,152 @@ const npcPatch = () => patch({ npc: {
 for (const id of ['quangOnCall', 'chucEnabled', 'qRate', 'qPitch']) $<HTMLInputElement>(id).onchange = npcPatch;
 $<HTMLInputElement>('qRate').oninput = (e) => { $('qRateVal').textContent = pctText(Number((e.target as HTMLInputElement).value)); };
 $<HTMLInputElement>('qPitch').oninput = (e) => { $('qPitchVal').textContent = pctText(Number((e.target as HTMLInputElement).value)); };
+
+// ---------- 07 / Nhạc nền (hỗ trợ > 500MB) ----------
+const musicIn = {
+  enabled: $<HTMLInputElement>('musicEnabled'),
+  ducking: $<HTMLInputElement>('musicDucking'),
+  track: $<HTMLSelectElement>('musicTrack'),
+  loop: $<HTMLSelectElement>('musicLoop'),
+  vol: $<HTMLInputElement>('musicVol'),
+  file: $<HTMLInputElement>('musicFile'),
+};
+let musicTracks: MusicTrackDTO[] = [];
+
+function fmtSize(bytes: number): string {
+  const mb = bytes / (1024 * 1024);
+  return mb >= 1024 ? `${(mb / 1024).toFixed(2)} GB` : `${mb.toFixed(1)} MB`;
+}
+
+function applyMusicTracks(list: MusicTrackDTO[]) {
+  musicTracks = list;
+  $('musicCount').textContent = String(list.length);
+  const cur = settings?.music?.track ?? musicIn.track.value;
+  musicIn.track.replaceChildren(
+    new Option('▶ Phát tất cả trong thư mục music/', ''),
+    ...list.map((t) => new Option(`${t.name} (${fmtSize(t.sizeBytes)})`, t.name)),
+  );
+  if (list.some((t) => t.name === cur)) musicIn.track.value = cur;
+  else musicIn.track.value = '';
+  $<HTMLButtonElement>('musicDeleteBtn').disabled = !musicIn.track.value;
+}
+
+function applyMusicSettings(s: SettingsDTO) {
+  if (!s.music) return;
+  musicIn.enabled.checked = s.music.enabled;
+  musicIn.ducking.checked = s.music.ducking;
+  if (document.activeElement !== musicIn.vol) musicIn.vol.value = String(s.music.volume);
+  $('musicVolVal').textContent = String(s.music.volume);
+  if (document.activeElement !== musicIn.loop) musicIn.loop.value = s.music.loop;
+  if (document.activeElement !== musicIn.track && (s.music.track === '' || musicTracks.some((t) => t.name === s.music.track))) {
+    musicIn.track.value = s.music.track;
+  }
+  $<HTMLButtonElement>('musicDeleteBtn').disabled = !musicIn.track.value;
+}
+
+const musicPatch = () => patch({
+  music: {
+    enabled: musicIn.enabled.checked,
+    ducking: musicIn.ducking.checked,
+    volume: Number(musicIn.vol.value),
+    track: musicIn.track.value,
+    loop: musicIn.loop.value as MusicLoopMode,
+  },
+});
+
+musicIn.enabled.onchange = musicPatch;
+musicIn.ducking.onchange = musicPatch;
+musicIn.track.onchange = () => {
+  $<HTMLButtonElement>('musicDeleteBtn').disabled = !musicIn.track.value;
+  musicPatch();
+};
+musicIn.loop.onchange = musicPatch;
+musicIn.vol.oninput = () => { $('musicVolVal').textContent = musicIn.vol.value; };
+musicIn.vol.onchange = musicPatch;
+
+$('musicPrev').onclick = () => sock.send({ t: 'music_ctl', action: 'prev' });
+$('musicRestart').onclick = () => sock.send({ t: 'music_ctl', action: 'restart' });
+$('musicNext').onclick = () => sock.send({ t: 'music_ctl', action: 'next' });
+$('musicRefresh').onclick = () => { sock.send({ t: 'music_refresh' }); flash($('musicRefresh'), '✓'); };
+
+const previewAudio = $<HTMLAudioElement>('musicPreviewAudio');
+const previewBtn = $<HTMLButtonElement>('musicPreviewBtn');
+previewBtn.onclick = () => {
+  const name = musicIn.track.value || musicTracks[0]?.name;
+  if (!name) return alert('Chưa có file nhạc nào trong thư mục music/.');
+  if (!previewAudio.hidden && !previewAudio.paused) {
+    previewAudio.pause();
+    previewBtn.textContent = '▶ Nghe thử ở đây';
+    return;
+  }
+  const url = `/music/${encodeURIComponent(name)}`;
+  if (!previewAudio.src.endsWith(url)) previewAudio.src = url;
+  previewAudio.volume = Number(musicIn.vol.value) / 100;
+  previewAudio.hidden = false;
+  void previewAudio.play().then(() => {
+    previewBtn.textContent = '⏸ Dừng nghe thử';
+  }).catch(() => {});
+};
+previewAudio.onpause = () => { previewBtn.textContent = '▶ Nghe thử ở đây'; };
+previewAudio.onplay = () => { previewBtn.textContent = '⏸ Dừng nghe thử'; };
+musicIn.vol.addEventListener('input', () => { previewAudio.volume = Number(musicIn.vol.value) / 100; });
+
+$('musicDeleteBtn').onclick = () => {
+  const name = musicIn.track.value;
+  if (!name) return;
+  if (confirm(`Xoá bài nhạc "${name}" khỏi thư mục music/?`)) {
+    sock.send({ t: 'music_delete', name });
+  }
+};
+
+$('musicUploadBtn').onclick = () => musicIn.file.click();
+musicIn.file.onchange = async () => {
+  const files = musicIn.file.files;
+  if (!files || !files.length) return;
+  const wrap = $('musicUploadWrap');
+  const bar = $('musicUploadBar');
+  const txt = $('musicUploadText');
+  const btn = $<HTMLButtonElement>('musicUploadBtn');
+  wrap.hidden = false;
+  btn.disabled = true;
+
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    await new Promise<void>((resolve) => {
+      const xhr = new XMLHttpRequest();
+      const started = Date.now();
+      xhr.open('POST', `/music/upload?name=${encodeURIComponent(f.name)}`);
+      xhr.upload.onprogress = (ev) => {
+        if (!ev.lengthComputable) return;
+        const pct = Math.round((ev.loaded / ev.total) * 100);
+        const sec = Math.max(0.1, (Date.now() - started) / 1000);
+        const speedMb = (ev.loaded / (1024 * 1024) / sec).toFixed(1);
+        bar.style.width = `${pct}%`;
+        txt.textContent = `Đang chép (${i + 1}/${files.length}) ${f.name}: ${pct}% (${fmtSize(ev.loaded)} / ${fmtSize(ev.total)} · ${speedMb} MB/s)`;
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          bar.style.width = '100%';
+          txt.textContent = `✓ Đã thêm: ${f.name} (${fmtSize(f.size)})`;
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText)?.error || xhr.statusText;
+            txt.textContent = `✗ Lỗi: ${err}`;
+          } catch {
+            txt.textContent = `✗ Lỗi tải file (${xhr.status})`;
+          }
+        }
+        resolve();
+      };
+      xhr.onerror = () => {
+        txt.textContent = `✗ Lỗi kết nối khi tải ${f.name}`;
+        resolve();
+      };
+      xhr.send(f);
+    });
+  }
+
+  btn.disabled = false;
+  musicIn.file.value = '';
+  setTimeout(() => { wrap.hidden = true; }, 5000);
+};

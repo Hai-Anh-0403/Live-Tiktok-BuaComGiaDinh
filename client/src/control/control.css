@@ -136,3 +136,8 @@ label.inline { display: inline-flex; gap: 5px; align-items: center; cursor: poin
 .heatBar { flex: 1; height: 10px; background: #0f0805; border-radius: 5px; overflow: hidden; }
 .heatBar i { display: block; height: 100%; width: 0; background: #5dade2; transition: width .8s, background .8s; }
 .heatRow b { color: var(--text); min-width: 90px; text-align: right; }
+
+.uploadWrap { margin-top: 10px; background: #0f0805; border: 1px solid #4a2c1d; border-radius: 8px; padding: 8px 10px; }
+.uploadWrap .bar { height: 7px; background: #00000088; border-radius: 4px; overflow: hidden; }
+.uploadWrap .bar i { display: block; height: 100%; width: 0%; background: var(--gold); transition: width .15s linear; }
+.uploadWrap small { display: block; margin-top: 5px; font-size: 11px; color: var(--muted); }

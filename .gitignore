@@ -4,3 +4,5 @@ client/dist/
 secrets.json
 cache/
 sessions/
+music/*
+!music/README.txt
