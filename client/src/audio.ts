@@ -22,7 +22,8 @@ export class PartyAudio {
 
   voiceVolume = 0.9;
 
-  music: MusicSettings = { enabled: true, volume: 35, ducking: false, track: '', loop: 'all' };
+  music: MusicSettings = { enabled: true, volume: 35, ducking: false, track: '', loop: 'all', order: [] };
+  private rawTracks: string[] = [];
   private tracks: string[] = [];
   private currentTrack = '';
   muted = false;
@@ -80,19 +81,38 @@ export class PartyAudio {
   setMusic(cfg: MusicSettings) {
     const prevTrack = this.music.track;
     this.music = { ...cfg };
+    this.rebuildTracks();
     if (!this.muted) this.ensureBgmEl();
     this.applyMusic(prevTrack !== cfg.track);
   }
 
   setMusicTracks(list: MusicTrackDTO[]) {
-    this.tracks = list.map((t) => t.name);
+    this.rawTracks = list.map((t) => t.name);
+    this.rebuildTracks();
     if (!this.muted) this.ensureBgmEl();
     this.applyMusic();
   }
 
-  musicControl(action: 'next' | 'prev' | 'restart') {
+  private rebuildTracks() {
+    const order = this.music.order ?? [];
+    const avail = new Set(this.rawTracks);
+    const out: string[] = [];
+    for (const name of order) {
+      if (avail.has(name) && !out.includes(name)) out.push(name);
+    }
+    for (const name of this.rawTracks) {
+      if (!out.includes(name)) out.push(name);
+    }
+    this.tracks = out;
+  }
+
+  musicControl(action: 'next' | 'prev' | 'restart' | 'restart_all') {
     if (this.muted || !this.tracks.length) return;
     this.ensureBgmEl();
+    if (action === 'restart_all') {
+      this.playTrack(this.tracks[0], true);
+      return;
+    }
     if (action === 'restart') {
       if (this.bgmEl) {
         this.bgmEl.currentTime = 0;
@@ -233,10 +253,14 @@ export class PartyAudio {
     }
   }
 
-  private playTrack(name: string) {
+  private playTrack(name: string, forceReload = false) {
     if (!this.bgmEl) return;
-    this.currentTrack = name;
-    this.bgmEl.src = `/music/${encodeURIComponent(name)}`;
+    if (!forceReload && this.currentTrack === name && this.bgmEl.src) {
+      this.bgmEl.currentTime = 0;
+    } else {
+      this.currentTrack = name;
+      this.bgmEl.src = `/music/${encodeURIComponent(name)}`;
+    }
     if (this.music.enabled) {
       void this.bgmEl.play().catch(() => {});
     }

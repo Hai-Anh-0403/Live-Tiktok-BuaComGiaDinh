@@ -108,10 +108,12 @@ export interface MusicSettings {
   volume: number;
   /** Tự nhỏ nhạc nền khi chủ tiệc / NPC đang nói */
   ducking: boolean;
-  /** Tên file nhạc đang chọn ('' = phát tất cả trong thư mục music/) */
+  /** Tên file nhạc đang chọn ('' = phát tất cả theo thứ tự) */
   track: string;
   /** Chế độ lặp: tất cả / 1 bài / ngẫu nhiên */
   loop: MusicLoopMode;
+  /** Thứ tự phát danh sách bài nhạc */
+  order?: string[];
 }
 
 export interface MusicTrackDTO {
@@ -254,7 +256,7 @@ export type ServerMsg =
   | { t: 'ga_piece'; table: number; left: number }
   | { t: 'photo'; names: string[]; caption: string; ms: number }
   | { t: 'music_list'; tracks: MusicTrackDTO[] }
-  | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' }
+  | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' | 'restart_all' }
   | { t: 'gift_fx'; id: string; table: number; tier: GiftTier; nick: string; giftName: string; coins: number }
   | { t: 'top_gifters'; list: TopGifterDTO[] }
   // chỉ gửi cho bảng điều khiển
@@ -296,4 +298,4 @@ export type ClientMsg =
   | { t: 'sim_gift'; nick: string; giftName: string; count: number; coins: number }
   | { t: 'music_refresh' }
   | { t: 'music_delete'; name: string }
-  | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' };
+  | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' | 'restart_all' };

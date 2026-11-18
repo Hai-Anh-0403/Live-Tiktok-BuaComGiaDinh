@@ -141,3 +141,12 @@ label.inline { display: inline-flex; gap: 5px; align-items: center; cursor: poin
 .uploadWrap .bar { height: 7px; background: #00000088; border-radius: 4px; overflow: hidden; }
 .uploadWrap .bar i { display: block; height: 100%; width: 0%; background: var(--gold); transition: width .15s linear; }
 .uploadWrap small { display: block; margin-top: 5px; font-size: 11px; color: var(--muted); }
+
+.musicQueue { display: grid; gap: 5px; max-height: 180px; overflow-y: auto; margin-top: 6px; }
+.musicQueue .mq-item { display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 7px;
+  background: #0f0805; border: 1px solid #3a2318; font-size: 12px; }
+.musicQueue .mq-item.active { border-color: var(--gold); }
+.musicQueue .mq-idx { color: var(--gold); font-weight: 800; min-width: 22px; }
+.musicQueue .mq-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.musicQueue .mq-size { color: var(--muted); font-size: 11px; }
+.musicQueue button { padding: 3px 7px; font-size: 11px; border-radius: 5px; }

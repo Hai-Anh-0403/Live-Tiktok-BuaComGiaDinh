@@ -213,6 +213,11 @@ export class Game {
       m.ducking = !!m.ducking;
       m.track = String(m.track ?? '').trim().slice(0, 180);
       if (!['all', 'one', 'shuffle'].includes(m.loop)) m.loop = 'all';
+      if (Array.isArray(m.order)) {
+        m.order = m.order.map((x) => String(x || '').trim().slice(0, 180)).filter(Boolean).slice(0, 200);
+      } else {
+        m.order = s.music.order ?? [];
+      }
       s.music = m;
     }
     if (patch.tts && typeof patch.tts === 'object') {

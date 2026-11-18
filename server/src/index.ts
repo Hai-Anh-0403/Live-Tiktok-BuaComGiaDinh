@@ -29,7 +29,7 @@ const DEFAULTS: SettingsDTO & { port: number } = {
   voiceVolume: 90,
   ambience: false,
   ambienceVolume: 0,
-  music: { enabled: true, volume: 35, ducking: false, track: '', loop: 'all' },
+  music: { enabled: true, volume: 35, ducking: false, track: '', loop: 'all', order: [] },
   ai: { enabled: false, provider: 'anthropic', model: 'claude-haiku-5-5', baseUrl: '', maxCallsPerMinute: 20 },
   disclaimer: { show: true, text: '🎭 Parody giải trí · Nhân vật hư cấu, giọng nói do AI tạo · Không phải người thật' },
   npc: { quangOnCall: true, chucEnabled: true, quangVoice: { rate: 10, pitch: 12 } },
@@ -303,7 +303,7 @@ wss.on('connection', (ws, req) => {
         return;
       }
       case 'music_ctl':
-        if (m.action === 'next' || m.action === 'prev' || m.action === 'restart') {
+        if (m.action === 'next' || m.action === 'prev' || m.action === 'restart' || m.action === 'restart_all') {
           game.broadcast({ t: 'music_ctl', action: m.action });
         }
         return;

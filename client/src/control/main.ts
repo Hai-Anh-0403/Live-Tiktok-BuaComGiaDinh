@@ -486,17 +486,91 @@ function fmtSize(bytes: number): string {
   return mb >= 1024 ? `${(mb / 1024).toFixed(2)} GB` : `${mb.toFixed(1)} MB`;
 }
 
+function orderedMusicTracks(): MusicTrackDTO[] {
+  const order = settings?.music?.order ?? [];
+  const byName = new Map(musicTracks.map((t) => [t.name, t]));
+  const out: MusicTrackDTO[] = [];
+  for (const name of order) {
+    const t = byName.get(name);
+    if (t && !out.includes(t)) out.push(t);
+  }
+  for (const t of musicTracks) {
+    if (!out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+function renderMusicQueue() {
+  const box = $('musicQueue');
+  const list = orderedMusicTracks();
+  if (!list.length) {
+    box.innerHTML = '<span class="hint">Chưa có bài nhạc nào trong thư mục music/.</span>';
+    return;
+  }
+  const activeTrack = settings?.music?.track ?? '';
+  box.replaceChildren(...list.map((t, i) => {
+    const row = document.createElement('div');
+    row.className = `mq-item${activeTrack === t.name ? ' active' : ''}`;
+
+    const idx = document.createElement('span');
+    idx.className = 'mq-idx';
+    idx.textContent = `#${i + 1}`;
+
+    const name = document.createElement('span');
+    name.className = 'mq-name';
+    name.title = t.name;
+    name.textContent = t.name;
+
+    const size = document.createElement('span');
+    size.className = 'mq-size';
+    size.textContent = fmtSize(t.sizeBytes);
+
+    const up = document.createElement('button');
+    up.textContent = '▲';
+    up.title = 'Đưa lên trước';
+    up.disabled = i === 0;
+    up.onclick = () => moveTrackOrder(i, -1);
+
+    const down = document.createElement('button');
+    down.textContent = '▼';
+    down.title = 'Đưa xuống sau';
+    down.disabled = i === list.length - 1;
+    down.onclick = () => moveTrackOrder(i, 1);
+
+    const playNow = document.createElement('button');
+    playNow.textContent = '▶';
+    playNow.title = 'Chọn phát bài này';
+    playNow.onclick = () => {
+      musicIn.track.value = t.name;
+      patch({ music: { ...settings!.music, enabled: true, track: t.name } });
+    };
+
+    row.append(idx, name, size, up, down, playNow);
+    return row;
+  }));
+}
+
+function moveTrackOrder(index: number, delta: -1 | 1) {
+  const list = orderedMusicTracks().map((t) => t.name);
+  const next = index + delta;
+  if (next < 0 || next >= list.length) return;
+  [list[index], list[next]] = [list[next], list[index]];
+  patch({ music: { ...settings!.music, order: list } });
+}
+
 function applyMusicTracks(list: MusicTrackDTO[]) {
   musicTracks = list;
   $('musicCount').textContent = String(list.length);
+  const ordered = orderedMusicTracks();
   const cur = settings?.music?.track ?? musicIn.track.value;
   musicIn.track.replaceChildren(
-    new Option('▶ Phát tất cả trong thư mục music/', ''),
-    ...list.map((t) => new Option(`${t.name} (${fmtSize(t.sizeBytes)})`, t.name)),
+    new Option('▶ Phát tất cả theo thứ tự danh sách', ''),
+    ...ordered.map((t, i) => new Option(`#${i + 1} · ${t.name} (${fmtSize(t.sizeBytes)})`, t.name)),
   );
-  if (list.some((t) => t.name === cur)) musicIn.track.value = cur;
+  if (ordered.some((t) => t.name === cur)) musicIn.track.value = cur;
   else musicIn.track.value = '';
   $<HTMLButtonElement>('musicDeleteBtn').disabled = !musicIn.track.value;
+  renderMusicQueue();
 }
 
 function applyMusicSettings(s: SettingsDTO) {
@@ -510,10 +584,12 @@ function applyMusicSettings(s: SettingsDTO) {
     musicIn.track.value = s.music.track;
   }
   $<HTMLButtonElement>('musicDeleteBtn').disabled = !musicIn.track.value;
+  applyMusicTracks(musicTracks);
 }
 
 const musicPatch = () => patch({
   music: {
+    ...settings!.music,
     enabled: musicIn.enabled.checked,
     ducking: musicIn.ducking.checked,
     volume: Number(musicIn.vol.value),
@@ -532,6 +608,11 @@ musicIn.loop.onchange = musicPatch;
 musicIn.vol.oninput = () => { $('musicVolVal').textContent = musicIn.vol.value; };
 musicIn.vol.onchange = musicPatch;
 
+$('musicRestartAll').onclick = () => {
+  if (settings?.music?.track) patch({ music: { ...settings.music, enabled: true, track: '' } });
+  else if (settings?.music && !settings.music.enabled) patch({ music: { ...settings.music, enabled: true } });
+  sock.send({ t: 'music_ctl', action: 'restart_all' });
+};
 $('musicPrev').onclick = () => sock.send({ t: 'music_ctl', action: 'prev' });
 $('musicRestart').onclick = () => sock.send({ t: 'music_ctl', action: 'restart' });
 $('musicNext').onclick = () => sock.send({ t: 'music_ctl', action: 'next' });

@@ -150,11 +150,14 @@
         </div>
         <label class="field mt"><span>Âm lượng nhạc nền: <b id="musicVolVal">35</b>%</span><input id="musicVol" type="range" min="0" max="100" /></label>
         <div class="buttons">
+          <button id="musicRestartAll" title="Phát từ đầu danh sách (bài #1)">⏮ Từ đầu DS</button>
           <button id="musicPrev" title="Bài trước">⏮ Trước</button>
-          <button id="musicRestart" title="Phát lại từ đầu">↺ Đầu bài</button>
+          <button id="musicRestart" title="Phát lại bài hiện tại từ đầu">↺ Đầu bài</button>
           <button id="musicNext" title="Bài tiếp theo">⏭ Tiếp</button>
           <button id="musicRefresh" title="Quét lại thư mục music/">↻ Quét</button>
         </div>
+        <div class="label mt">THỨ TỰ PHÁT NHẠC (Bấm ▲ / ▼ để sắp xếp)</div>
+        <div id="musicQueue" class="musicQueue"></div>
         <div class="buttons">
           <button id="musicPreviewBtn">▶ Nghe thử ở đây</button>
         </div>
