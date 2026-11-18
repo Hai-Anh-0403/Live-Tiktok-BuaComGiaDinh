@@ -283,6 +283,14 @@ wss.on('connection', (ws, req) => {
         return;
       }
       case 'sim_bots': sim.setTarget(Number(m.count) || 0); game.log('system', `Giả lập: ${sim.count} bot`); return;
+      case 'sim_gift': {
+        const nick = String(m.nick || 'Tester').slice(0, 18);
+        const giftName = String(m.giftName || 'Hoa hồng').slice(0, 32);
+        const count = Math.max(1, Math.min(999, Number(m.count) || 1));
+        const coins = Math.max(1, Math.min(100000, Number(m.coins) || 1));
+        game.handle({ kind: 'gift', userId: `dev_${nick}`, nick, giftName, count, coins });
+        return;
+      }
       case 'music_refresh':
         game.broadcast({ t: 'music_list', tracks: listMusicTracks() });
         return;

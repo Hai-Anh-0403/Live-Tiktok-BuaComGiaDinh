@@ -108,7 +108,7 @@ export class PartyScene extends Phaser.Scene {
       case 'host_emote': this.host.emote(m.kind); return;
       case 'say': return this.hostSay(m.text, m.ms, m.audioUrl, m.lookAt, m.fx ?? 'normal', m.speaker ?? 'host');
       case 'event_note': return this.eventPanel.setNote(m.text);
-      case 'host_costume': this.host.setLook(m.costume === 'old' ? HOST_OLD_LOOK : HOST_LOOK); this.host.emote('star'); return;
+      case 'host_costume': this.host.emote('star'); return;
       case 'banner': return this.showBanner(m.text, m.ms);
       case 'stats': return this.updateStats(m.stats);
       case 'settings': return this.applySettings(m.settings);

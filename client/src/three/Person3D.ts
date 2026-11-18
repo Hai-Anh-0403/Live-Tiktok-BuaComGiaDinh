@@ -84,6 +84,8 @@ export class Person3D {
   private highlightUntil = 0;
   private dizzyUntil = 0;
   private jumpOffset = 0;
+  private vip = false;
+  private rawName: string;
 
   onStuck?: () => void;
 
@@ -98,6 +100,7 @@ export class Person3D {
     this.x2d = x2d;
     this.y2d = y2d;
     this.anchor = anchor;
+    this.rawName = name;
     this.isHost = !!opts.host || !!opts.npc;
     this.sc = opts.host ? 1.38 : opts.npc ? 1.2 : 1.0;
     this.speed = opts.host ? 190 : opts.npc ? 200 : 230 + Math.random() * 60;
@@ -351,6 +354,12 @@ export class Person3D {
     this.highlightUntil = Date.now() + ms;
   }
 
+  setVip(on: boolean) {
+    if (this.vip === on) return;
+    this.vip = on;
+    if (on) this.setLabel(`👑 ${shortName(this.rawName)}`, '#ffd76a');
+  }
+
   triggerEmote(kind: EmoteKind) {
     if (kind === 'dizzy') this.dizzyUntil = Date.now() + 1600;
     else this.jumpOffset = 0.2;
@@ -360,8 +369,8 @@ export class Person3D {
 
   update(dt: number, now: number) {
     const ringMat = this.ring.material as THREE.MeshBasicMaterial;
-    if (now < this.highlightUntil) {
-      ringMat.opacity = 0.5 + 0.5 * Math.sin(now * 0.015);
+    if (this.vip || now < this.highlightUntil) {
+      ringMat.opacity = this.vip ? (0.65 + 0.35 * Math.sin(now * 0.008)) : (0.5 + 0.5 * Math.sin(now * 0.015));
     } else if (ringMat.opacity > 0) {
       ringMat.opacity = 0;
     }

@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { TABLE_COUNT } from '../../shared/layout.js';
 import type {
-  ClientRole, EmoteKind, HeatDTO, HostTarget, LiveStateDTO, LogDTO, ServerMsg, SettingsDTO, StatsDTO, VoiceFx,
+  ClientRole, EmoteKind, GiftTier, HeatDTO, HostTarget, LiveStateDTO, LogDTO, ServerMsg, SettingsDTO, StatsDTO, TopGifterDTO, VoiceFx,
 } from '../../shared/protocol.js';
 import { Bond } from './bond.js';
 import { ChucController, CHUC_VOICE } from './chuc.js';
@@ -75,6 +75,7 @@ export class Game {
 
   private logBuf: LogDTO[] = [];
   private logPending: LogDTO[] = [];
+  private gifterCoins = new Map<string, TopGifterDTO>();
 
   live: LiveStateDTO = { status: 'idle', uniqueId: '' };
   simCount = 0;
@@ -143,7 +144,7 @@ export class Game {
     send({
       t: 'snapshot', guests: this.room.dto(), host: this.hostTarget(), stats: this.stats(),
       settings: this.decorateSettings(this.settings), bond: this.bond.dto(), event: this.director.dto(),
-      npcs: this.npc.dto(), heat: this.heatDto, hostPose: this.hostPose,
+      npcs: this.npc.dto(), heat: this.heatDto, hostPose: this.hostPose, topGifters: this.topGifters(),
     });
     return {
       setRole: (role: ClientRole) => {
@@ -284,6 +285,8 @@ export class Game {
     this.chuc.stop();
     this.npc.leave('quang');
     this.recentJoins = [];
+    this.gifterCoins.clear();
+    this.broadcast({ t: 'top_gifters', list: [] });
     this.hostGoto({ kind: 'stage' });
     this.log('system', 'Đã dọn sân, bắt đầu bữa tiệc mới');
   }
@@ -319,13 +322,38 @@ export class Game {
       this.metrics.gift(ev.userId, ev.coins);
       const guest = g ?? this.join(ev.userId, ev.nick);
       this.room.touch(ev.userId);
-      this.broadcast({ t: 'emote', id: ev.userId, kind: 'gift' });
       const nick = cleanNick(ev.nick);
-      this.log('gift', `${nick} tặng ${ev.giftName} x${ev.count} (${ev.coins} xu)`);
-      this.broadcast({ t: 'banner', text: `Cảm ơn ${nick} đã gửi ${ev.giftName}${ev.count > 1 ? ' x' + ev.count : ''}!`, ms: 3500 });
-      // quà cộng thêm tình nghĩa nhưng có trần, để comment miễn phí vẫn là nguồn chính
-      this.bond.add(guest.table, Math.min(20, 2 + ev.coins));
-      if (this.cool('gift', 10000)) this.say('gift', { nick }, 2, ev.userId);
+      const tier: GiftTier = ev.coins >= 100 ? 'big' : ev.coins >= 20 ? 'medium' : 'small';
+      if (tier === 'big') guest.vip = true;
+
+      // Cập nhật bảng Mạnh Thường Quân
+      const prev = this.gifterCoins.get(ev.userId);
+      this.gifterCoins.set(ev.userId, { nick, coins: (prev?.coins ?? 0) + ev.coins });
+      this.broadcast({ t: 'top_gifters', list: this.topGifters() });
+
+      this.broadcast({ t: 'emote', id: ev.userId, kind: 'gift' });
+      this.broadcast({ t: 'gift_fx', id: ev.userId, table: guest.table, tier, nick, giftName: ev.giftName, coins: ev.coins });
+      this.log('gift', `${nick} tặng ${ev.giftName} x${ev.count} (${ev.coins} xu · ${tier})`);
+
+      const giftText = `${ev.giftName}${ev.count > 1 ? ' x' + ev.count : ''}`;
+      if (tier === 'big') {
+        this.broadcast({ t: 'banner', text: `👑 ĐẠI GIA ${nick} nổ hũ ${giftText} (${ev.coins} xu)! Cả sân chúc mừng!`, ms: 5500 });
+      } else if (tier === 'medium') {
+        const tbl = guest.table >= 0 ? `mâm ${guest.table + 1}` : 'cả sân';
+        this.broadcast({ t: 'banner', text: `🍺 ${nick} khao ${tbl} (${giftText})! Mọi người cụng ly nào!`, ms: 4500 });
+      } else {
+        this.broadcast({ t: 'banner', text: `Cảm ơn ${nick} đã gửi ${giftText}!`, ms: 3500 });
+      }
+
+      // Quà cộng thêm tình nghĩa (quà lớn cộng nhiều hơn nhưng vẫn giữ trần hợp lý)
+      const bonus = tier === 'big' ? 25 : Math.min(20, 2 + ev.coins);
+      this.bond.add(guest.table, bonus);
+
+      const sayGroup = tier === 'big' ? 'gift_big' : tier === 'medium' ? 'gift_medium' : 'gift';
+      const coolMs = tier === 'small' ? 10000 : 3000;
+      if (this.cool(`gift_${tier}`, coolMs)) {
+        this.say(sayGroup, { nick, gift: ev.giftName, table: guest.table >= 0 ? guest.table + 1 : '?' }, tier === 'small' ? 2 : 3, ev.userId);
+      }
     }
   }
 
@@ -682,6 +710,10 @@ export class Game {
 
   /** Id khách đang có trong sân (để tính chỉ số khi bắt đầu ghi giữa chừng). */
   guestIds() { return [...this.room.guests.keys()]; }
+
+  topGifters(): TopGifterDTO[] {
+    return [...this.gifterCoins.values()].sort((a, b) => b.coins - a.coins).slice(0, 3);
+  }
 
   stats(): StatsDTO {
     return {

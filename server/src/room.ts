@@ -90,7 +90,7 @@ export class Room {
   waitingGuests(): Guest[] { return this.waiting.map((id) => this.guests.get(id)!); }
 
   dto(): GuestDTO[] {
-    return [...this.guests.values()].map(({ id, nick, look, table, seat }) => ({ id, nick, look, table, seat }));
+    return [...this.guests.values()].map(({ id, nick, look, table, seat, vip }) => ({ id, nick, look, table, seat, vip }));
   }
 
   private sit(g: Guest, table: number, seat: number) {

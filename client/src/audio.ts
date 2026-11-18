@@ -1,4 +1,4 @@
-import type { MusicSettings, MusicTrackDTO, VoiceFx } from '../../shared/protocol';
+import type { GiftTier, MusicSettings, MusicTrackDTO, VoiceFx } from '../../shared/protocol';
 
 /**
  * Âm thanh màn hình live (Web Audio + HTMLAudioElement streaming):
@@ -174,6 +174,41 @@ export class PartyAudio {
     this.fakeTalk = true;
     this.speakingUntil = Date.now() + ms;
     this.updateDucking(true);
+  }
+
+  /** Hiệu ứng âm thanh khi có người tặng quà (tổng hợp bằng Web Audio, không cần file). */
+  playGiftSfx(tier: GiftTier) {
+    if (this.muted) return;
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx || ctx.state !== 'running') return;
+    const now = ctx.currentTime;
+    const vol = Math.max(0.15, this.voiceVolume * 0.65);
+
+    const tone = (freq: number, start: number, dur: number, type: OscillatorType = 'triangle', gainScale = 1) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, start);
+      g.gain.setValueAtTime(0.001, start);
+      g.gain.exponentialRampToValueAtTime(vol * gainScale, start + 0.015);
+      g.gain.exponentialRampToValueAtTime(0.0001, start + dur);
+      o.connect(g).connect(ctx.destination);
+      o.start(start);
+      o.stop(start + dur + 0.02);
+    };
+
+    if (tier === 'small') {
+      tone(880, now, 0.18, 'sine', 0.5);
+      tone(1318, now + 0.07, 0.25, 'sine', 0.5);
+    } else if (tier === 'medium') {
+      [523, 659, 784, 1046].forEach((f, i) => tone(f, now + i * 0.065, 0.28, 'triangle', 0.7));
+    } else {
+      // Fanfare chiến thắng + nổ pháo hoa cho quà lớn
+      [523, 659, 784, 1046, 1318].forEach((f, i) => tone(f, now + i * 0.075, 0.45, 'triangle', 0.9));
+      tone(1046, now + 0.36, 0.7, 'sawtooth', 0.28);
+      tone(1568, now + 0.36, 0.7, 'sine', 0.6);
+    }
   }
 
   // ---------- nhạc nền (BGM streaming > 500MB) ----------

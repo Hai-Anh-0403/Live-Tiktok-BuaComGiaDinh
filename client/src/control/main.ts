@@ -223,6 +223,15 @@ document.querySelectorAll<HTMLButtonElement>('[data-say]').forEach((b) => { b.on
 document.querySelectorAll<HTMLButtonElement>('[data-bots]').forEach((b) => {
   b.onclick = () => sock.send({ t: 'sim_bots', count: Number(b.dataset.bots) });
 });
+document.querySelectorAll<HTMLButtonElement>('[data-gift-coins]').forEach((b) => {
+  b.onclick = () => sock.send({
+    t: 'sim_gift',
+    nick: inputs.simNick.value.trim() || 'Tester',
+    giftName: b.dataset.giftName || 'Hoa hồng',
+    count: 1,
+    coins: Number(b.dataset.giftCoins) || 1,
+  });
+});
 
 $('reset').onclick = () => {
   if (confirm('Dọn sân: mọi khách ra về và điểm tình nghĩa về 0. Tiếp tục?')) sock.send({ t: 'reset_room' });

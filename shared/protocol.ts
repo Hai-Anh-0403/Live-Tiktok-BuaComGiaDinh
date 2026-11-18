@@ -16,7 +16,11 @@ export interface GuestDTO {
   look: number;   // seed để client phối tóc/áo/màu
   table: number;  // 0..TABLE_COUNT-1, hoặc -1 nếu đang đứng chờ ở cổng
   seat: number;   // 0..SEATS_PER_TABLE-1, hoặc chỉ số hàng chờ nếu table = -1
+  vip?: boolean;  // khách tặng quà lớn (≥ 100 xu) trong phiên
 }
+
+export type GiftTier = 'small' | 'medium' | 'big';
+export interface TopGifterDTO { nick: string; coins: number }
 
 export type HostTarget = { kind: 'stage' } | { kind: 'table'; table: number } | { kind: 'counter' } | { kind: 'rest' };
 
@@ -223,7 +227,7 @@ export interface LogDTO { ts: number; kind: 'live' | 'chat' | 'gift' | 'event' |
 
 export type ServerMsg =
   | { t: 'snapshot'; guests: GuestDTO[]; host: HostTarget; stats: StatsDTO; settings: SettingsDTO; bond: BondDTO; event: EventDTO | null;
-      npcs: NpcDTO[]; heat: HeatDTO; hostPose: 'stand' | 'sit' }
+      npcs: NpcDTO[]; heat: HeatDTO; hostPose: 'stand' | 'sit'; topGifters?: TopGifterDTO[] }
   | { t: 'join'; g: GuestDTO }
   | { t: 'move'; id: string; table: number; seat: number }
   | { t: 'guest_goto'; id: string; spot: 'counter' | 'stage'; index: number }
@@ -251,6 +255,8 @@ export type ServerMsg =
   | { t: 'photo'; names: string[]; caption: string; ms: number }
   | { t: 'music_list'; tracks: MusicTrackDTO[] }
   | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' }
+  | { t: 'gift_fx'; id: string; table: number; tier: GiftTier; nick: string; giftName: string; coins: number }
+  | { t: 'top_gifters'; list: TopGifterDTO[] }
   // chỉ gửi cho bảng điều khiển
   | { t: 'log'; entries: LogDTO[] }
   | { t: 'director'; enabled: boolean; nextInSec: number | null }
@@ -287,6 +293,7 @@ export type ClientMsg =
   | { t: 'reset_room' }
   | { t: 'sim_comment'; nick: string; text: string }
   | { t: 'sim_bots'; count: number }
+  | { t: 'sim_gift'; nick: string; giftName: string; count: number; coins: number }
   | { t: 'music_refresh' }
   | { t: 'music_delete'; name: string }
   | { t: 'music_ctl'; action: 'next' | 'prev' | 'restart' };

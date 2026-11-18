@@ -66,6 +66,14 @@
   "gift": [
     "Cảm ơn {nick} nhé! Tình cảm quá, cả sân vỗ tay nào!"
   ],
+  "gift_medium": [
+    "Ối giời ơi {nick} gửi {gift} khao cả mâm {table} kìa! Anh em cụng ly cảm ơn nào!",
+    "{nick} chơi đẹp quá, gửi {gift}! Cả sân vỗ tay cho mâm {table}!"
+  ],
+  "gift_big": [
+    "Chào mừng đại gia {nick} nổ hũ {gift}! Quá đẳng cấp, cả sân đứng dậy chúc mừng nào!",
+    "{nick} gửi {gift} cực khủng! Anh em mâm {table} hôm nay nở mày nở mặt rồi!"
+  ],
   "idle_stage": [
     "Mâm cơm nhỏ, hạnh phúc to. Anh em năm châu bốn bể cứ về đây với anh!",
     "Ai mới vào live thì chat nhập tiệc để vào sân nhé, chat mâm số mấy để đổi bàn!",

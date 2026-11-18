@@ -3,11 +3,11 @@ import {
   COUNTER_NODE, GA_SPOT, GATE, GATE_NODE, HOST_STAGE_SPOT, H, STAGE_NODE, W, tablePos,
 } from '../../../shared/layout';
 import type {
-  EmoteKind, EventDTO, GuestDTO, HeatDTO, NpcId, NpcTarget, ServerMsg, SettingsDTO, Speaker, StatsDTO, VoiceFx,
+  EmoteKind, EventDTO, GuestDTO, HeatDTO, NpcId, NpcTarget, ServerMsg, SettingsDTO, Speaker, StatsDTO, TopGifterDTO, VoiceFx,
 } from '../../../shared/protocol';
 import { PartyAudio } from '../audio';
 import { Socket } from '../net/socket';
-import { CHUC_LOOK, HOST_LOOK, HOST_OLD_LOOK, QUANG_LOOK, decodeLook } from '../objects/look';
+import { CHUC_LOOK, HOST_LOOK, QUANG_LOOK, decodeLook } from '../objects/look';
 import { counterDest, gateDest, guestDest, hostDest, npcDest, route, stageGuestDest } from '../path';
 import { Person3D } from './Person3D';
 import { Venue3D } from './Venue3D';
@@ -77,6 +77,12 @@ export class Overlay3D {
   private disclaimerEl!: HTMLDivElement;
   private photoEl!: HTMLDivElement;
   private flashEl!: HTMLDivElement;
+  private topGiftsEl!: HTMLDivElement;
+  private giftPopEl!: HTMLDivElement;
+  private giftPopTimer = 0;
+  private spotlightMesh!: THREE.Mesh;
+  private spotlightUntil = 0;
+  private shakeUntil = 0;
 
   private guests = new Map<string, Person3D>();
   private npcs = new Map<NpcId, Person3D>();
@@ -85,6 +91,7 @@ export class Overlay3D {
   private speaking: Person3D | null = null;
   private focusPerson: Person3D | null = null;
   private focusUntil = 0;
+  private focusPriority = 0;
   private camMode: CamMode = 'auto';
   private camPos = new THREE.Vector3(0, 13.8, 13.4);
   private camLook = new THREE.Vector3(0, 0.2, 0.1);
@@ -127,11 +134,7 @@ export class Overlay3D {
     const style = document.createElement('style');
     style.textContent = `
       .o3d-ui { position:absolute; inset:0; pointer-events:none; font-family:system-ui,"Segoe UI",Arial,sans-serif; container-type:inline-size; }
-      .o3d-bottom { position:absolute; left:2%; right:2%; top:1%; padding:0.9% 2%; border-radius:14px;
-        background:rgba(43,18,10,0.92); text-align:center; color:#ffe9b8; border:1px solid #f5c26b55; }
-      .o3d-bottom-hint { font-size:2.05cqw; font-weight:700; }
-      .o3d-bottom-disc { font-size:1.6cqw; color:#e8cfb4; margin-top:2px; }
-      .o3d-hud { position:absolute; left:2%; right:2%; top:6.4%; padding:1.3% 2.6%; border-radius:16px;
+      .o3d-hud { position:absolute; left:2%; right:2%; top:1%; padding:1.3% 2.6%; border-radius:16px;
         background:rgba(43,18,10,0.9); border:2px solid #f5c26b; color:#fbe9d0; display:flex; justify-content:space-between; align-items:center; gap:8px; }
       .o3d-hud-title { font-size:3.2cqw; font-weight:900; color:#ffd76a; line-height:1.15; }
       .o3d-hud-sub { font-size:2.2cqw; opacity:.95; margin-top:3px; }
@@ -140,11 +143,15 @@ export class Overlay3D {
       .o3d-dot { width:10px; height:10px; border-radius:50%; background:#e74c3c; display:inline-block; }
       .o3d-heat-bar { width:16cqw; height:10px; background:rgba(0,0,0,0.55); border-radius:6px; overflow:hidden; }
       .o3d-heat-bar > div { height:100%; width:10%; background:#5dade2; border-radius:6px; transition:width .5s, background .5s; }
-      .o3d-banner { position:absolute; left:50%; top:13.8%; transform:translateX(-50%); max-width:86%; padding:1% 3%;
+      .o3d-bottom { position:absolute; left:2%; right:2%; top:8.6%; padding:0.9% 2%; border-radius:14px;
+        background:rgba(43,18,10,0.92); text-align:center; color:#ffe9b8; border:1px solid #f5c26b55; }
+      .o3d-bottom-hint { font-size:2.05cqw; font-weight:700; }
+      .o3d-bottom-disc { font-size:1.6cqw; color:#e8cfb4; margin-top:2px; }
+      .o3d-banner { position:absolute; left:50%; top:14.2%; transform:translateX(-50%); max-width:86%; padding:1% 3%;
         border-radius:999px; background:#ffd76a; border:2.5px solid #8e1b12; color:#2b1408; font-weight:800; font-size:2.4cqw;
         text-align:center; box-shadow:0 8px 24px #0007; opacity:0; transition:opacity .25s, top .25s; }
-      .o3d-banner.on { opacity:1; top:14.4%; }
-      .o3d-ev { position:absolute; left:50%; top:19.2%; transform:translateX(-50%); width:82%; padding:1.4% 2.6%;
+      .o3d-banner.on { opacity:1; top:14.8%; }
+      .o3d-ev { position:absolute; left:50%; top:19.8%; transform:translateX(-50%); width:82%; padding:1.4% 2.6%;
         border-radius:14px; background:rgba(58,10,6,0.9); border:2px solid #ffd76a; color:#fff; text-align:center; display:none; }
       .o3d-ev.on { display:block; }
       .o3d-ev-title { font-size:2.6cqw; font-weight:900; color:#ffd76a; }
@@ -152,6 +159,25 @@ export class Overlay3D {
       .o3d-ev-note { font-size:1.9cqw; color:#9fe8b0; margin-top:2px; font-weight:700; }
       .o3d-ev-bar { height:6px; background:rgba(0,0,0,0.55); border-radius:4px; margin-top:6px; overflow:hidden; }
       .o3d-ev-bar > div { height:100%; background:#ffd76a; width:100%; }
+      .o3d-top-gifts { position:absolute; right:2%; top:14.8%; padding:1% 2%; border-radius:12px;
+        background:rgba(26,13,6,0.82); border:1px solid #f5c26b88; color:#ffe9b8; font-size:1.85cqw; line-height:1.45;
+        display:none; z-index:30; text-align:right; box-shadow:0 6px 20px #0006; }
+      .o3d-top-gifts.on { display:block; }
+      .o3d-top-gifts b { color:#ffd76a; display:block; font-size:1.9cqw; margin-bottom:2px; }
+      .o3d-gift-pop { position:absolute; left:50%; top:34%; transform:translate(-50%,-50%) scale(0.5); width:82%; padding:3% 4%;
+        border-radius:22px; text-align:center; opacity:0; pointer-events:none; z-index:52;
+        transition:transform .35s cubic-bezier(.18,1.3,.4,1), opacity .3s; }
+      .o3d-gift-pop.on { opacity:1; transform:translate(-50%,-50%) scale(1); }
+      .o3d-gift-pop.medium { background:linear-gradient(135deg, rgba(22,60,108,0.94), rgba(14,32,64,0.95));
+        border:3px solid #5dade2; box-shadow:0 0 40px rgba(93,173,226,0.6), 0 18px 40px #000a; color:#fff; }
+      .o3d-gift-pop.big { background:linear-gradient(135deg, rgba(162,24,14,0.95), rgba(74,10,4,0.97));
+        border:4px solid #ffd76a; box-shadow:0 0 70px rgba(255,215,106,0.85), 0 22px 60px #000c; color:#fff; }
+      .o3d-gp-icon { font-size:11cqw; line-height:1.05; filter:drop-shadow(0 6px 12px #0008); animation:o3dPulse .7s ease-in-out infinite alternate; }
+      .o3d-gp-tag { display:inline-block; padding:2px 12px; border-radius:999px; background:#ffd76a; color:#2b1408;
+        font-size:2cqw; font-weight:900; letter-spacing:1px; margin-top:4px; }
+      .o3d-gp-nick { font-size:4.4cqw; font-weight:900; color:#ffd76a; margin-top:4px; text-shadow:0 3px 10px #000a; }
+      .o3d-gp-sub { font-size:2.6cqw; font-weight:700; color:#ffe9b8; margin-top:3px; }
+      @keyframes o3dPulse { from { transform:scale(1); } to { transform:scale(1.12); } }
       .o3d-cam-bar { position:absolute; right:2.5%; bottom:1.6%; display:flex; gap:6px; pointer-events:auto; opacity:0.35; transition:opacity .2s; z-index:45; }
       .o3d-wrap:hover .o3d-cam-bar { opacity:0.95; }
       .o3d-cam-bar button { padding:4px 9px; border-radius:999px; border:1px solid #f5c26b; background:rgba(26,13,6,0.85);
@@ -199,6 +225,8 @@ export class Overlay3D {
         <div class="o3d-ev-note" id="o3dEvNote"></div>
         <div class="o3d-ev-bar"><div id="o3dEvBar"></div></div>
       </div>
+      <div class="o3d-top-gifts" id="o3dTopGifts"></div>
+      <div class="o3d-gift-pop" id="o3dGiftPop"></div>
       <div class="o3d-cam-bar" id="o3dCamBar">
         <button data-cam="auto" class="active" title="Tự lia cận cảnh khi nhân vật nói">🎥 Tự động</button>
         <button data-cam="overview" title="Toàn cảnh sân tiệc">🏠 Toàn sân</button>
@@ -228,6 +256,8 @@ export class Overlay3D {
     this.disclaimerEl = ui.querySelector('#o3dDisc')!;
     this.photoEl = ui.querySelector('#o3dPhoto')!;
     this.flashEl = ui.querySelector('#o3dFlash')!;
+    this.topGiftsEl = ui.querySelector('#o3dTopGifts')!;
+    this.giftPopEl = ui.querySelector('#o3dGiftPop')!;
 
     const camBar = ui.querySelector('#o3dCamBar') as HTMLDivElement;
     if (IS_PREVIEW) camBar.style.display = 'none';
@@ -311,6 +341,14 @@ export class Overlay3D {
     this.gaGroup.visible = false;
     this.scene.add(this.gaGroup);
 
+    // Cột sáng Spotlight 3D chiếu xuống người tặng quà lớn/vừa
+    this.spotlightMesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.15, 0.95, 7.5, 24, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xffd76a, transparent: true, opacity: 0, side: THREE.DoubleSide, depthWrite: false }),
+    );
+    this.spotlightMesh.visible = false;
+    this.scene.add(this.spotlightMesh);
+
     const resize = () => {
       const r = this.stageWrap.getBoundingClientRect();
       if (r.width > 0 && r.height > 0) {
@@ -361,7 +399,7 @@ export class Overlay3D {
       case 'host_emote': this.host.triggerEmote(m.kind); this.spawnEmoji(this.host, m.kind); return;
       case 'say': return this.hostSay(m.text, m.ms, m.audioUrl, m.lookAt, m.fx ?? 'normal', m.speaker ?? 'host');
       case 'event_note': this.eventNoteEl.textContent = m.text; return;
-      case 'host_costume': this.host.setLook(m.costume === 'old' ? HOST_OLD_LOOK : HOST_LOOK); this.spawnEmoji(this.host, 'star'); return;
+      case 'host_costume': this.spawnEmoji(this.host, 'star'); return;
       case 'banner': return this.showBanner(m.text, m.ms);
       case 'stats': return this.updateStats(m.stats);
       case 'settings': return this.applySettings(m.settings);
@@ -382,6 +420,8 @@ export class Overlay3D {
       case 'ga_piece': return this.flyGaPiece(m.table, m.left);
       case 'music_list': return this.audio.setMusicTracks(m.tracks);
       case 'music_ctl': return this.audio.musicControl(m.action);
+      case 'gift_fx': return this.onGiftFx(m);
+      case 'top_gifters': return this.setTopGifters(m.list);
     }
   }
 
@@ -400,6 +440,7 @@ export class Overlay3D {
     this.venue.setBond(m.bond);
     this.setEvent(m.event);
     this.setHeat(m.heat);
+    this.setTopGifters(m.topGifters ?? []);
     for (const p of this.npcs.values()) this.removePerson(p);
     this.npcs.clear();
     for (const n of m.npcs) {
@@ -428,6 +469,7 @@ export class Overlay3D {
     if (!walkIn) {
       const p = new Person3D(dest.pos.x, dest.pos.y, dest.anchor, look, g.nick);
       p.seated = g.table >= 0;
+      if (g.vip) p.setVip(true);
       if (g.table >= 0) { const c = tablePos(g.table); p.face(c.x, c.y); }
       p.onStuck = () => this.reportStuck('guest');
       this.scene.add(p.root);
@@ -435,6 +477,7 @@ export class Overlay3D {
       return;
     }
     const p = new Person3D(GATE.x + (Math.random() - 0.5) * 120, 1960, GATE_NODE, look, g.nick);
+    if (g.vip) p.setVip(true);
     p.onStuck = () => this.reportStuck('guest');
     this.scene.add(p.root);
     this.guests.set(g.id, p);
@@ -501,10 +544,16 @@ export class Overlay3D {
     this.guestBubbleOrder = this.guestBubbleOrder.filter((x) => x !== p);
   }
 
+  private setFocus(person: Person3D, ms: number, priority: number) {
+    const now = Date.now();
+    if (now < this.focusUntil && priority < this.focusPriority) return;
+    this.focusPerson = person;
+    this.focusUntil = now + ms;
+    this.focusPriority = priority;
+  }
+
   private hostGoto(target: Extract<ServerMsg, { t: 'host_goto' }>['target'], token: number) {
     const d = hostDest(target);
-    this.focusPerson = this.host;
-    this.focusUntil = Date.now() + 5000;
     this.host.walk(route(this.host.anchor, d), () => {
       this.host.anchor = d.anchor;
       if (target.kind === 'stage') this.host.face(this.host.x2d, this.host.y2d + 100);
@@ -531,8 +580,6 @@ export class Overlay3D {
     }
     const d = npcDest(target);
     const person = p;
-    this.focusPerson = person;
-    this.focusUntil = Date.now() + 4500;
     person.walk(route(person.anchor, d), () => {
       person.anchor = d.anchor;
       if (target.kind === 'stage') person.face(person.x2d, person.y2d + 100);
@@ -561,8 +608,10 @@ export class Overlay3D {
       : typeof speaker === 'object' ? (this.guests.get(speaker.guest) ?? this.host)
       : (this.npcs.get(speaker) ?? this.host);
     this.speaking = who;
-    this.focusPerson = who;
-    this.focusUntil = Date.now() + ms + 1600;
+    // Chỉ focus nhẹ vào Chủ tiệc khi đang có sự kiện, không đi theo NPC hay cắt ngang lúc đang focus người tặng quà
+    if (who === this.host && this.eventData) {
+      this.setFocus(who, ms + 800, 1);
+    }
     this.showBubble(who, text, ms + 600, true);
     if (lookAt) {
       const g = this.guests.get(lookAt);
@@ -604,16 +653,22 @@ export class Overlay3D {
     this.emojis.push({ el, expiresAt: Date.now() + 1250 });
   }
 
-  private spawnConfetti(cx: number, cz: number) {
-    const colors = [0xffd76a, 0xe74c3c, 0x4cd37b, 0x5dade2, 0xff9fd0];
-    const geo = new THREE.BoxGeometry(0.08, 0.08, 0.02);
-    for (let i = 0; i < 22; i++) {
+  private spawnConfetti(cx: number, cz: number, count = 28, burstHeight = 3.5) {
+    const colors = [0xffd76a, 0xff4d4d, 0x4cd37b, 0x5dade2, 0xff9fd0, 0xffffff];
+    const geo = new THREE.BoxGeometry(0.14, 0.14, 0.04);
+    for (let i = 0; i < count; i++) {
       const mesh = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: colors[i % colors.length] }));
-      mesh.position.set(cx, 0.7, cz);
+      mesh.position.set(cx + (Math.random() - 0.5) * 0.6, 0.8 + Math.random() * 0.8, cz + (Math.random() - 0.5) * 0.6);
       this.scene.add(mesh);
       const a = Math.random() * Math.PI * 2;
-      const spd = 1 + Math.random() * 2;
-      this.confetti.push({ mesh, vx: Math.cos(a) * spd, vy: 3 + Math.random() * 2.5, vz: Math.sin(a) * spd, life: 1.5 });
+      const spd = 1.4 + Math.random() * 3.2;
+      this.confetti.push({
+        mesh,
+        vx: Math.cos(a) * spd,
+        vy: burstHeight + Math.random() * 3.5,
+        vz: Math.sin(a) * spd,
+        life: 2.2 + Math.random() * 0.8,
+      });
     }
   }
 
@@ -666,6 +721,71 @@ export class Overlay3D {
     this.heatText.textContent = `🔥 ${HEAT_TEXT[h.level]}`;
   }
 
+  private setTopGifters(list: TopGifterDTO[]) {
+    if (!list.length) {
+      this.topGiftsEl.classList.remove('on');
+      this.topGiftsEl.innerHTML = '';
+      return;
+    }
+    const medals = ['🥇', '🥈', '🥉'];
+    this.topGiftsEl.innerHTML = `<b>👑 MẠNH THƯỜNG QUÂN</b>` + list.map((g, i) =>
+      `<div>${medals[i] ?? '🎁'} ${escHtml(g.nick)} · ${g.coins} xu</div>`,
+    ).join('');
+    this.topGiftsEl.classList.add('on');
+  }
+
+  private onGiftFx(m: Extract<ServerMsg, { t: 'gift_fx' }>) {
+    this.audio.playGiftSfx(m.tier);
+    const p = this.guests.get(m.id);
+    if (p) p.highlight(m.tier === 'big' ? 8000 : m.tier === 'medium' ? 5000 : 2500);
+    if (m.tier === 'small') return;
+
+    const fxX = m.table >= 0 ? toX(tablePos(m.table).x) : (p?.root.position.x ?? 0);
+    const fxZ = m.table >= 0 ? toZ(tablePos(m.table).y) : (p?.root.position.z ?? 0);
+
+    // Chiếu cột sáng Spotlight xuống người tặng / mâm
+    this.spotlightMesh.position.set(p ? p.root.position.x : fxX, 3.75, p ? p.root.position.z : fxZ);
+    (this.spotlightMesh.material as THREE.MeshBasicMaterial).color.setHex(m.tier === 'big' ? 0xffd76a : 0x5dade2);
+    this.spotlightMesh.visible = true;
+    this.spotlightUntil = Date.now() + (m.tier === 'big' ? 5500 : 3800);
+
+    // Hiện Popup Vinh Danh giữa màn hình
+    this.giftPopEl.className = `o3d-gift-pop ${m.tier} on`;
+    this.giftPopEl.innerHTML = m.tier === 'big'
+      ? `<div class="o3d-gp-icon">👑</div><div class="o3d-gp-tag">NỔ HŨ BÀN NHẬU · +${m.coins} XU</div><div class="o3d-gp-nick">${escHtml(m.nick)}</div><div class="o3d-gp-sub">Vừa tặng ${escHtml(m.giftName)}!</div>`
+      : `<div class="o3d-gp-icon">🍺</div><div class="o3d-gp-tag">KHAO CẢ MÂM · +${m.coins} XU</div><div class="o3d-gp-nick">${escHtml(m.nick)}</div><div class="o3d-gp-sub">Gửi tặng ${escHtml(m.giftName)}!</div>`;
+    clearTimeout(this.giftPopTimer);
+    this.giftPopTimer = window.setTimeout(() => this.giftPopEl.classList.remove('on'), m.tier === 'big' ? 4600 : 3200);
+
+    if (p) {
+      this.setFocus(p, m.tier === 'big' ? 6000 : 4200, 2);
+    }
+    if (m.table >= 0) this.venue.pulseTable(m.table, 'win');
+    this.spawnConfetti(fxX, fxZ, m.tier === 'big' ? 55 : 35, m.tier === 'big' ? 5.2 : 3.8);
+
+    if (m.tier === 'big') {
+      p?.setVip(true);
+      this.shakeUntil = Date.now() + 650;
+      this.flashEl.style.background = '#ffd76a';
+      this.flashEl.style.opacity = '0.45';
+      setTimeout(() => { this.flashEl.style.opacity = '0'; this.flashEl.style.background = '#fff'; }, 220);
+
+      // Bắn pháo hoa nhiều đợt khắp sân
+      this.spawnConfetti(0, toZ(380), 45, 5.5);
+      setTimeout(() => this.spawnConfetti(fxX, fxZ, 45, 5.5), 450);
+      setTimeout(() => this.spawnConfetti(-2.5, 0, 35, 5), 850);
+      setTimeout(() => this.spawnConfetti(2.5, 0, 35, 5), 1150);
+
+      let count = 0;
+      for (const g of this.guests.values()) {
+        g.triggerEmote('cheer');
+        if (count++ < 22) this.spawnEmoji(g, count % 2 ? 'cheer' : 'star');
+      }
+      this.host.triggerEmote('cheer');
+      this.spawnEmoji(this.host, 'heart');
+    }
+  }
+
   private updateStats(s: StatsDTO) {
     const src = s.live.status === 'connected' ? `LIVE @${s.live.uniqueId}` : s.sim > 0 ? 'Giả lập' : 'Chưa kết nối live';
     this.hudCount.textContent = `Khách: ${s.guests - s.waiting}/${s.capacity}${s.waiting ? ` · Chờ: ${s.waiting}` : ''} · ${src}`;
@@ -676,10 +796,10 @@ export class Overlay3D {
     const targetLook = new THREE.Vector3(0, 0.2, 0.1);
 
     let focus: Person3D | null = null;
-    if (this.camMode === 'host') {
-      focus = this.host;
-    } else if (this.camMode === 'auto' && this.focusPerson && now < this.focusUntil) {
+    if (this.focusPerson && now < this.focusUntil && (this.camMode === 'auto' || this.focusPriority >= 2)) {
       focus = this.focusPerson;
+    } else if (this.camMode === 'host') {
+      focus = this.host;
     }
 
     if (focus) {
@@ -703,8 +823,21 @@ export class Overlay3D {
     this.camPos.lerp(targetPos, k);
     this.camLook.lerp(targetLook, k);
     this.camera.position.copy(this.camPos);
+    if (now < this.shakeUntil) {
+      this.camera.position.x += (Math.random() - 0.5) * 0.25;
+      this.camera.position.y += (Math.random() - 0.5) * 0.25;
+    }
     this.camera.lookAt(this.camLook);
     this.camera.updateMatrixWorld();
+
+    // Cập nhật cột sáng Spotlight 3D
+    if (now < this.spotlightUntil) {
+      const leftRatio = Math.min(1, (this.spotlightUntil - now) / 800);
+      (this.spotlightMesh.material as THREE.MeshBasicMaterial).opacity = 0.26 * leftRatio;
+      this.spotlightMesh.rotation.y += dt * 1.5;
+    } else if (this.spotlightMesh.visible) {
+      this.spotlightMesh.visible = false;
+    }
   }
 
   private projectHead(p: Person3D): { x: number; y: number } | null {
@@ -799,4 +932,8 @@ export class Overlay3D {
 
     this.renderer.render(this.scene, this.camera);
   };
+}
+
+function escHtml(s: string) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
